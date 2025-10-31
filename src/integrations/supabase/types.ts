@@ -18,6 +18,10 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          file_name: string | null
+          file_size: number | null
+          file_type: string | null
+          file_url: string | null
           id: string
           residence_id: string
           sender_id: string
@@ -25,6 +29,10 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string
+          file_name?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string | null
           id?: string
           residence_id: string
           sender_id: string
@@ -32,6 +40,10 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          file_name?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string | null
           id?: string
           residence_id?: string
           sender_id?: string
@@ -316,6 +328,50 @@ export type Database = {
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rooms: {
+        Row: {
+          capacity: number
+          created_at: string
+          current_occupants: number
+          id: string
+          is_available: boolean
+          price_per_month: number
+          residence_id: string
+          room_number: string
+          updated_at: string
+        }
+        Insert: {
+          capacity?: number
+          created_at?: string
+          current_occupants?: number
+          id?: string
+          is_available?: boolean
+          price_per_month: number
+          residence_id: string
+          room_number: string
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number
+          created_at?: string
+          current_occupants?: number
+          id?: string
+          is_available?: boolean
+          price_per_month?: number
+          residence_id?: string
+          room_number?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rooms_residence_id_fkey"
+            columns: ["residence_id"]
+            isOneToOne: false
+            referencedRelation: "residences"
             referencedColumns: ["id"]
           },
         ]

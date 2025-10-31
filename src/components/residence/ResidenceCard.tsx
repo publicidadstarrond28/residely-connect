@@ -1,7 +1,7 @@
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Users, Star, DollarSign } from "lucide-react";
+import { MapPin, Users, Star, DollarSign, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface ResidenceCardProps {
@@ -106,7 +106,7 @@ export const ResidenceCard = ({ residence }: ResidenceCardProps) => {
         </div>
       </CardContent>
 
-      <CardFooter className="p-4 pt-0 flex items-center justify-between">
+      <CardFooter className="p-4 pt-0 flex items-center justify-between gap-2">
         <div className="flex items-center gap-1">
           <DollarSign className="h-5 w-5 text-primary" />
           <span className="text-2xl font-bold text-primary">
@@ -114,13 +114,23 @@ export const ResidenceCard = ({ residence }: ResidenceCardProps) => {
           </span>
           <span className="text-sm text-muted-foreground">/mes</span>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => navigate(`/residence/${residence.id}`)}
-        >
-          Ver Detalles
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(`/chat/${residence.id}`)}
+          >
+            <MessageCircle className="h-4 w-4 mr-1" />
+            Chat
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(`/residence/${residence.id}`)}
+          >
+            Ver Detalles
+          </Button>
+        </div>
       </CardFooter>
     </Card>
   );

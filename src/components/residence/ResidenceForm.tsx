@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { LocationPicker } from "./LocationPicker";
+import { RoomManagement } from "./RoomManagement";
 import { Loader2, Plus, X } from "lucide-react";
 
 export const ResidenceForm = () => {
@@ -29,6 +30,7 @@ export const ResidenceForm = () => {
     gender_preference: "mixed" as const,
     amenities: [] as string[],
   });
+  const [rooms, setRooms] = useState<any[]>([]);
   const [newAmenity, setNewAmenity] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,6 +50,10 @@ export const ResidenceForm = () => {
 
       if (!profile || profile.role !== "owner") {
         throw new Error("Solo los dueños pueden crear residencias");
+      }
+
+      if (rooms.length === 0) {
+        throw new Error("Debes agregar al menos una habitación");
       }
 
       // Create residence
@@ -73,6 +79,20 @@ export const ResidenceForm = () => {
         .single();
 
       if (error) throw error;
+
+      // Create rooms
+      const roomsToInsert = rooms.map((room) => ({
+        residence_id: residence.id,
+        room_number: room.room_number,
+        capacity: room.capacity,
+        price_per_month: parseFloat(room.price_per_month),
+      }));
+
+      const { error: roomsError } = await supabase
+        .from("rooms")
+        .insert(roomsToInsert);
+
+      if (roomsError) throw roomsError;
 
       toast.success("¡Residencia creada exitosamente!");
       navigate("/");
@@ -271,6 +291,9 @@ export const ResidenceForm = () => {
               </div>
             </div>
           </div>
+
+          {/* Rooms */}
+          <RoomManagement rooms={rooms} onChange={setRooms} />
 
           {/* Amenities */}
           <div className="space-y-4">

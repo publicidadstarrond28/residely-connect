@@ -1,14 +1,17 @@
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { useEffect } from "react";
 
 // Fix for default marker icon
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+// @ts-ignore
+delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
-  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
 interface LocationPickerProps {
@@ -17,54 +20,95 @@ interface LocationPickerProps {
   onLocationChange: (lat: number, lng: number) => void;
 }
 
-function LocationMarker({ 
-  position, 
-  onLocationChange 
-}: { 
-  position: [number, number]; 
-  onLocationChange: (lat: number, lng: number) => void;
-}) {
-  useMapEvents({
-    click(e) {
-      onLocationChange(e.latlng.lat, e.latlng.lng);
-    },
-  });
+export const LocationPicker = ({
+  latitude,
+  longitude,
+  onLocationChange,
+}: LocationPickerProps) => {
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
 
-  return position[0] !== 0 && position[1] !== 0 ? <Marker position={position} /> : null;
-}
-
-export const LocationPicker = ({ latitude, longitude, onLocationChange }: LocationPickerProps) => {
-  const defaultCenter: [number, number] = [10, -66];
-  const position: [number, number] = [latitude || defaultCenter[0], longitude || defaultCenter[1]];
+  const getCenter = (): [number, number] => [latitude || 10, longitude || -66];
 
   useEffect(() => {
-    if (latitude === 0 && longitude === 0) {
+    if (!mapContainerRef.current || mapRef.current) return;
+
+    const map = L.map(mapContainerRef.current, {
+      center: getCenter(),
+      zoom: 13,
+      zoomControl: true,
+      scrollWheelZoom: false,
+    });
+    mapRef.current = map;
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(map);
+
+    // Initialize marker if we already have coords
+    if (latitude !== 0 && longitude !== 0) {
+      markerRef.current = L.marker([latitude, longitude]).addTo(map);
+    }
+
+    // Map click handler
+    map.on("click", (e: L.LeafletMouseEvent) => {
+      const { lat, lng } = e.latlng;
+      if (!markerRef.current) {
+        markerRef.current = L.marker([lat, lng]).addTo(map);
+      } else {
+        markerRef.current.setLatLng([lat, lng]);
+      }
+      onLocationChange(lat, lng);
+    });
+
+    // Try geolocation if empty
+    if (latitude === 0 && longitude === 0 && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          onLocationChange(pos.coords.latitude, pos.coords.longitude);
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          map.setView([lat, lng], 13);
+          if (!markerRef.current) {
+            markerRef.current = L.marker([lat, lng]).addTo(map);
+          } else {
+            markerRef.current.setLatLng([lat, lng]);
+          }
+          onLocationChange(lat, lng);
         },
         () => {
-          console.log("Location access denied");
+          // Silent fallback
         }
       );
     }
-  }, [latitude, longitude, onLocationChange]);
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+      markerRef.current = null;
+    };
+  }, []);
+
+  // Keep marker/view in sync when props change
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const map = mapRef.current;
+    const center = getCenter();
+    map.setView(center, map.getZoom());
+
+    if (latitude !== 0 && longitude !== 0) {
+      if (!markerRef.current) {
+        markerRef.current = L.marker(center).addTo(map);
+      } else {
+        markerRef.current.setLatLng(center);
+      }
+    }
+  }, [latitude, longitude]);
 
   return (
     <div className="h-[400px] w-full rounded-lg overflow-hidden border border-border">
-      <MapContainer
-        center={position}
-        zoom={13}
-        scrollWheelZoom={false}
-        className="h-full w-full"
-        key={`${latitude}-${longitude}`}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <LocationMarker position={[latitude, longitude]} onLocationChange={onLocationChange} />
-      </MapContainer>
+      <div ref={mapContainerRef} className="h-full w-full" />
     </div>
   );
 };

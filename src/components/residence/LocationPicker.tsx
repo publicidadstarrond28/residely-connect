@@ -1,7 +1,7 @@
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 
 // Fix for default marker icon
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -17,36 +17,34 @@ interface LocationPickerProps {
   onLocationChange: (lat: number, lng: number) => void;
 }
 
-function MapClickHandler({ onLocationChange }: { onLocationChange: (lat: number, lng: number) => void }) {
-  const map = useMapEvents({
-    click: (e) => {
+function LocationMarker({ 
+  position, 
+  onLocationChange 
+}: { 
+  position: [number, number]; 
+  onLocationChange: (lat: number, lng: number) => void;
+}) {
+  useMapEvents({
+    click(e) {
       onLocationChange(e.latlng.lat, e.latlng.lng);
     },
   });
-  return null;
-}
 
-function MapMarker({ latitude, longitude }: { latitude: number; longitude: number }) {
-  if (latitude === 0 && longitude === 0) {
-    return null;
-  }
-  return <Marker position={[latitude, longitude]} />;
+  return position[0] !== 0 && position[1] !== 0 ? <Marker position={position} /> : null;
 }
 
 export const LocationPicker = ({ latitude, longitude, onLocationChange }: LocationPickerProps) => {
-  const center = useMemo<[number, number]>(() => {
-    return [latitude || 10, longitude || -66];
-  }, [latitude, longitude]);
+  const defaultCenter: [number, number] = [10, -66];
+  const position: [number, number] = [latitude || defaultCenter[0], longitude || defaultCenter[1]];
 
   useEffect(() => {
-    // Request user's current location if coordinates are at default
     if (latitude === 0 && longitude === 0) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          onLocationChange(position.coords.latitude, position.coords.longitude);
+        (pos) => {
+          onLocationChange(pos.coords.latitude, pos.coords.longitude);
         },
-        (error) => {
-          console.log("Location access denied, using default");
+        () => {
+          console.log("Location access denied");
         }
       );
     }
@@ -55,17 +53,17 @@ export const LocationPicker = ({ latitude, longitude, onLocationChange }: Locati
   return (
     <div className="h-[400px] w-full rounded-lg overflow-hidden border border-border">
       <MapContainer
-        center={center}
+        center={position}
         zoom={13}
-        className="h-full w-full"
         scrollWheelZoom={false}
+        className="h-full w-full"
+        key={`${latitude}-${longitude}`}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <MapClickHandler onLocationChange={onLocationChange} />
-        <MapMarker latitude={latitude} longitude={longitude} />
+        <LocationMarker position={[latitude, longitude]} onLocationChange={onLocationChange} />
       </MapContainer>
     </div>
   );

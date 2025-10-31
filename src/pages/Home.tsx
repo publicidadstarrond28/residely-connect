@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { ResidenceCard } from "@/components/residence/ResidenceCard";
-import { ResidenceFilters, FilterValues } from "@/components/residence/ResidenceFilters";
+import { ResidenceFiltersNav, FilterValues } from "@/components/residence/ResidenceFiltersNav";
 import { Button } from "@/components/ui/button";
-import { MapPin } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import heroImage from "@/assets/residence-hero.jpg";
 
 interface Residence {
@@ -103,87 +103,62 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
+    <div className="min-h-screen bg-background">
       <Header />
-
+      
       {/* Hero Section */}
-      <section className="relative h-[500px] overflow-hidden">
-        <div className="absolute inset-0">
-          <img
-            src={heroImage}
-            alt="Residencias modernas"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/70 to-transparent" />
+      <section className="relative h-[500px] flex items-center justify-center overflow-hidden">
+        <div 
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ 
+            backgroundImage: `url(${heroImage})`,
+          }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/60" />
         </div>
-        <div className="relative container mx-auto px-4 h-full flex items-center">
-          <div className="max-w-2xl space-y-6">
-            <h1 className="text-5xl md:text-6xl font-bold leading-tight">
-              Encuentra tu{" "}
-              <span className="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                hogar ideal
-              </span>
-            </h1>
-            <p className="text-xl text-muted-foreground">
-              Conectamos residentes con los mejores espacios. Tu próxima aventura comienza aquí.
-            </p>
-            {!isAuthenticated && (
-              <div className="flex gap-4">
-                <Button
-                  size="lg"
-                  onClick={() => navigate("/auth")}
-                  className="bg-gradient-to-r from-primary to-primary/90 shadow-[var(--shadow-elegant)]"
-                >
-                  <MapPin className="mr-2 h-5 w-5" />
-                  Comenzar Búsqueda
-                </Button>
-              </div>
-            )}
-          </div>
+        
+        <div className="relative z-10 text-center text-white px-4 max-w-4xl mx-auto">
+          <h1 className="text-5xl md:text-6xl font-bold mb-6 animate-fade-in">
+            Encuentra tu Hogar Ideal
+          </h1>
+          <p className="text-xl md:text-2xl mb-8 text-white/90">
+            Conectamos residentes con los mejores espacios para vivir
+          </p>
+          {!isAuthenticated && (
+            <Button 
+              size="lg" 
+              className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 text-lg"
+              onClick={() => window.location.href = "/auth"}
+            >
+              Comenzar Búsqueda
+            </Button>
+          )}
         </div>
       </section>
+
+      {/* Filters Navigation */}
+      <ResidenceFiltersNav onFilterChange={handleFilterChange} />
 
       {/* Main Content */}
-      <section className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Filters Sidebar */}
-          <div className="lg:col-span-1">
-            <ResidenceFilters onFilterChange={handleFilterChange} />
+      <main className="container mx-auto px-4 py-8">
+        {loading ? (
+          <div className="flex items-center justify-center min-h-[400px]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-
-          {/* Residences Grid */}
-          <div className="lg:col-span-3">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold">
-                {filteredResidences.length} residencias disponibles
-              </h2>
-              <p className="text-muted-foreground">
-                Encuentra el lugar perfecto para ti
-              </p>
-            </div>
-
-            {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} className="h-96 bg-muted animate-pulse rounded-lg" />
-                ))}
-              </div>
-            ) : filteredResidences.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-xl text-muted-foreground">
-                  No se encontraron residencias con estos filtros
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredResidences.map((residence) => (
-                  <ResidenceCard key={residence.id} residence={residence} />
-                ))}
-              </div>
-            )}
+        ) : filteredResidences.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground text-lg">
+              No se encontraron residencias con los filtros seleccionados
+            </p>
           </div>
-        </div>
-      </section>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredResidences.map((residence) => (
+              <ResidenceCard key={residence.id} residence={residence} />
+            ))}
+          </div>
+        )}
+      </main>
     </div>
   );
 };

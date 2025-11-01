@@ -188,6 +188,7 @@ export type Database = {
           id: string
           message: string | null
           residence_id: string
+          room_id: string | null
           status: string | null
           updated_at: string
         }
@@ -197,6 +198,7 @@ export type Database = {
           id?: string
           message?: string | null
           residence_id: string
+          room_id?: string | null
           status?: string | null
           updated_at?: string
         }
@@ -206,6 +208,7 @@ export type Database = {
           id?: string
           message?: string | null
           residence_id?: string
+          room_id?: string | null
           status?: string | null
           updated_at?: string
         }
@@ -222,6 +225,13 @@ export type Database = {
             columns: ["residence_id"]
             isOneToOne: false
             referencedRelation: "residences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "residence_applications_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
             referencedColumns: ["id"]
           },
         ]

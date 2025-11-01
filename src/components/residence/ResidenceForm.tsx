@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { LocationPicker } from "./LocationPicker";
 import { RoomManagement } from "./RoomManagement";
+import { PhotoUpload } from "./PhotoUpload";
 import { Loader2, Plus, X } from "lucide-react";
 
 export const ResidenceForm = () => {
@@ -31,6 +32,7 @@ export const ResidenceForm = () => {
     amenities: [] as string[],
   });
   const [rooms, setRooms] = useState<any[]>([]);
+  const [photos, setPhotos] = useState<Array<{ file: File; preview: string; isPrimary: boolean }>>([]);
   const [newAmenity, setNewAmenity] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -93,6 +95,38 @@ export const ResidenceForm = () => {
         .insert(roomsToInsert);
 
       if (roomsError) throw roomsError;
+
+      // Upload photos
+      if (photos.length > 0) {
+        const photoUploads = photos.map(async (photo) => {
+          const fileExt = photo.file.name.split('.').pop();
+          const fileName = `${residence.id}/${Math.random()}.${fileExt}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('residence-photos')
+            .upload(fileName, photo.file);
+
+          if (uploadError) throw uploadError;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('residence-photos')
+            .getPublicUrl(fileName);
+
+          return {
+            residence_id: residence.id,
+            photo_url: publicUrl,
+            is_primary: photo.isPrimary,
+          };
+        });
+
+        const photoRecords = await Promise.all(photoUploads);
+
+        const { error: photosError } = await supabase
+          .from('residence_photos')
+          .insert(photoRecords);
+
+        if (photosError) throw photosError;
+      }
 
       toast.success("¡Residencia creada exitosamente!");
       navigate("/");
@@ -294,6 +328,9 @@ export const ResidenceForm = () => {
 
           {/* Rooms */}
           <RoomManagement rooms={rooms} onChange={setRooms} />
+
+          {/* Photos */}
+          <PhotoUpload photos={photos} onChange={setPhotos} />
 
           {/* Amenities */}
           <div className="space-y-4">

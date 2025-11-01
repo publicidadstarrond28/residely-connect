@@ -63,17 +63,18 @@ export const LocationPicker = ({
       onLocationChange(lat, lng);
     });
 
-    // Try geolocation if empty
+    // Try geolocation only once on initial mount if coords are empty
     if (latitude === 0 && longitude === 0 && navigator.geolocation) {
+      let hasSetLocation = false;
       navigator.geolocation.getCurrentPosition(
         (pos) => {
+          if (hasSetLocation) return; // Prevent multiple calls
+          hasSetLocation = true;
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
           map.setView([lat, lng], 13);
           if (!markerRef.current) {
             markerRef.current = L.marker([lat, lng]).addTo(map);
-          } else {
-            markerRef.current.setLatLng([lat, lng]);
           }
           onLocationChange(lat, lng);
         },

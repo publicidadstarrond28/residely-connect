@@ -396,7 +396,7 @@ export type Database = {
     Enums: {
       residence_gender: "male" | "female" | "mixed"
       residence_status: "available" | "occupied"
-      residence_type: "residence" | "hotel" | "apartment"
+      residence_type: "residence" | "hotel" | "apartment" | "room" | "studio"
       user_role: "resident" | "owner"
     }
     CompositeTypes: {
@@ -527,7 +527,7 @@ export const Constants = {
     Enums: {
       residence_gender: ["male", "female", "mixed"],
       residence_status: ["available", "occupied"],
-      residence_type: ["residence", "hotel", "apartment"],
+      residence_type: ["residence", "hotel", "apartment", "room", "studio"],
       user_role: ["resident", "owner"],
     },
   },

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { MapPin, Users, Star, DollarSign, MessageCircle, Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 interface ResidenceCardProps {
@@ -27,31 +27,21 @@ interface ResidenceCardProps {
 
 export const ResidenceCard = ({ residence }: ResidenceCardProps) => {
   const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [applying, setApplying] = useState(false);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setIsAuthenticated(!!user);
-    };
-    checkAuth();
-  }, []);
 
   const handleApply = async (e: React.MouseEvent) => {
     e.stopPropagation();
     
-    if (!isAuthenticated) {
-      toast.error("Debes iniciar sesión para solicitar");
+    // Check authentication first
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.info("Debes iniciar sesión para solicitar");
       navigate("/auth");
       return;
     }
 
     setApplying(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
       const { data: profile } = await supabase
         .from("profiles")
         .select("id")
@@ -183,7 +173,7 @@ export const ResidenceCard = ({ residence }: ResidenceCardProps) => {
           </div>
         </div>
         <div className="flex gap-2 w-full">
-          {isAuthenticated && residence.status === "available" && (
+          {residence.status === "available" && (
             <Button
               size="sm"
               onClick={handleApply}

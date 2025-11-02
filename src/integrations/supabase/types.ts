@@ -14,9 +14,37 @@ export type Database = {
   }
   public: {
     Tables: {
+      conversations: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          owner_id: string
+          residence_id: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          owner_id: string
+          residence_id: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          owner_id?: string
+          residence_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
+          conversation_id: string | null
           created_at: string
           file_name: string | null
           file_size: number | null
@@ -28,6 +56,7 @@ export type Database = {
         }
         Insert: {
           content: string
+          conversation_id?: string | null
           created_at?: string
           file_name?: string | null
           file_size?: number | null
@@ -39,6 +68,7 @@ export type Database = {
         }
         Update: {
           content?: string
+          conversation_id?: string | null
           created_at?: string
           file_name?: string | null
           file_size?: number | null

@@ -1,8 +1,11 @@
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Users, Star, DollarSign, MessageCircle } from "lucide-react";
+import { MapPin, Users, Star, DollarSign, MessageCircle, Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 interface ResidenceCardProps {
   residence: {
@@ -24,6 +27,69 @@ interface ResidenceCardProps {
 
 export const ResidenceCard = ({ residence }: ResidenceCardProps) => {
   const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [applying, setApplying] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setIsAuthenticated(!!user);
+    };
+    checkAuth();
+  }, []);
+
+  const handleApply = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!isAuthenticated) {
+      toast.error("Debes iniciar sesión para solicitar");
+      navigate("/auth");
+      return;
+    }
+
+    setApplying(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!profile) throw new Error("Perfil no encontrado");
+
+      // Check if already applied
+      const { data: existing } = await supabase
+        .from("residence_applications")
+        .select("id")
+        .eq("residence_id", residence.id)
+        .eq("applicant_id", profile.id)
+        .single();
+
+      if (existing) {
+        toast.info("Ya has enviado una solicitud para esta residencia");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("residence_applications")
+        .insert({
+          residence_id: residence.id,
+          applicant_id: profile.id,
+          message: "Estoy interesado en esta residencia",
+        });
+
+      if (error) throw error;
+      
+      toast.success("Solicitud enviada exitosamente");
+    } catch (error: any) {
+      toast.error(error.message || "Error al enviar solicitud");
+    } finally {
+      setApplying(false);
+    }
+  };
 
   const averageRating =
     residence.ratings && residence.ratings.length > 0
@@ -106,19 +172,36 @@ export const ResidenceCard = ({ residence }: ResidenceCardProps) => {
         </div>
       </CardContent>
 
-      <CardFooter className="p-4 pt-0 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1">
-          <DollarSign className="h-5 w-5 text-primary" />
-          <span className="text-2xl font-bold text-primary">
-            {residence.price_per_month.toLocaleString()}
-          </span>
-          <span className="text-sm text-muted-foreground">/mes</span>
+      <CardFooter className="p-4 pt-0 flex flex-col gap-3">
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-1">
+            <DollarSign className="h-5 w-5 text-primary" />
+            <span className="text-2xl font-bold text-primary">
+              {residence.price_per_month.toLocaleString()}
+            </span>
+            <span className="text-sm text-muted-foreground">/mes</span>
+          </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full">
+          {isAuthenticated && residence.status === "available" && (
+            <Button
+              size="sm"
+              onClick={handleApply}
+              disabled={applying}
+              className="flex-1"
+            >
+              <Send className="h-4 w-4 mr-1" />
+              {applying ? "Enviando..." : "Solicitar"}
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate(`/chat/${residence.id}`)}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/chat/${residence.id}`);
+            }}
+            className="flex-1"
           >
             <MessageCircle className="h-4 w-4 mr-1" />
             Chat
@@ -127,6 +210,7 @@ export const ResidenceCard = ({ residence }: ResidenceCardProps) => {
             variant="outline"
             size="sm"
             onClick={() => navigate(`/residence/${residence.id}`)}
+            className="flex-1"
           >
             Ver Detalles
           </Button>

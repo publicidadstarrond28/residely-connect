@@ -5,17 +5,18 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useRealtimeMessages } from "@/hooks/useRealtimeMessages";
-import { Send, Paperclip, Image as ImageIcon, Video, File, Mic, Loader2 } from "lucide-react";
+import { useConversation } from "@/hooks/useConversation";
+import { Send, Paperclip, File, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface ResidenceChatProps {
-  residenceId: string;
-  currentUserId: string;
+  conversationId: string | null;
+  currentProfileId: string;
+  otherUserName: string;
 }
 
-export const ResidenceChat = ({ residenceId, currentUserId }: ResidenceChatProps) => {
-  const { messages, loading } = useRealtimeMessages(residenceId);
+export const ResidenceChat = ({ conversationId, currentProfileId, otherUserName }: ResidenceChatProps) => {
+  const { messages, loading } = useConversation(conversationId);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -29,27 +30,25 @@ export const ResidenceChat = ({ residenceId, currentUserId }: ResidenceChatProps
   }, [messages]);
 
   const sendMessage = async (content: string, fileData?: any) => {
-    if (!content.trim() && !fileData) return;
+    if ((!content.trim() && !fileData) || !conversationId) return;
 
     setSending(true);
     try {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("user_id", currentUserId)
-        .single();
-
-      if (!profile) throw new Error("Perfil no encontrado");
-
-      const { error } = await supabase.from("messages").insert({
+      const messageData: any = {
         content: content.trim(),
-        sender_id: profile.id,
-        residence_id: residenceId,
-        file_url: fileData?.url,
-        file_type: fileData?.type,
-        file_name: fileData?.name,
-        file_size: fileData?.size,
-      });
+        sender_id: currentProfileId,
+        conversation_id: conversationId,
+        residence_id: null,
+      };
+
+      if (fileData) {
+        messageData.file_url = fileData.url;
+        messageData.file_type = fileData.type;
+        messageData.file_name = fileData.name;
+        messageData.file_size = fileData.size;
+      }
+
+      const { error } = await supabase.from("messages").insert(messageData);
 
       if (error) throw error;
       setNewMessage("");
@@ -156,56 +155,69 @@ export const ResidenceChat = ({ residenceId, currentUserId }: ResidenceChatProps
     );
   }
 
+  if (!conversationId) {
+    return (
+      <Card className="w-full">
+        <CardContent className="p-8 text-center">
+          <p className="text-muted-foreground">Inicia una conversación para comenzar a chatear</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Chat de la Residencia</CardTitle>
+      <CardHeader className="border-b">
+        <CardTitle className="text-lg">Chat con {otherUserName}</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <ScrollArea className="h-[500px] p-4" ref={scrollRef}>
-          <div className="space-y-4">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex gap-2 ${
-                  message.sender_id === currentUserId ? "flex-row-reverse" : ""
-                }`}
-              >
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={message.profiles?.avatar_url} />
-                  <AvatarFallback>
-                    {message.profiles?.full_name?.[0] || "U"}
-                  </AvatarFallback>
-                </Avatar>
+        <ScrollArea className="h-[500px] p-4 bg-gradient-to-b from-background to-muted/20" ref={scrollRef}>
+          <div className="space-y-3">
+            {messages.map((message) => {
+              const isCurrentUser = message.sender_id === currentProfileId;
+              return (
                 <div
-                  className={`flex flex-col ${
-                    message.sender_id === currentUserId ? "items-end" : ""
-                  }`}
+                  key={message.id}
+                  className={`flex gap-2 ${isCurrentUser ? "flex-row-reverse" : ""}`}
                 >
+                  <Avatar className="h-8 w-8 flex-shrink-0">
+                    <AvatarImage src={message.profiles?.avatar_url} />
+                    <AvatarFallback className="text-xs">
+                      {message.profiles?.full_name?.[0] || "U"}
+                    </AvatarFallback>
+                  </Avatar>
                   <div
-                    className={`rounded-lg p-3 max-w-md ${
-                      message.sender_id === currentUserId
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary"
+                    className={`flex flex-col max-w-[70%] ${
+                      isCurrentUser ? "items-end" : "items-start"
                     }`}
                   >
-                    <p className="text-xs font-semibold mb-1">
-                      {message.profiles?.full_name || "Usuario"}
-                    </p>
-                    {message.content && <p className="text-sm">{message.content}</p>}
-                    {renderFilePreview(message)}
+                    <div
+                      className={`rounded-2xl px-4 py-2 shadow-sm ${
+                        isCurrentUser
+                          ? "bg-primary text-primary-foreground rounded-tr-sm"
+                          : "bg-card border rounded-tl-sm"
+                      }`}
+                    >
+                      {message.content && (
+                        <p className="text-sm break-words">{message.content}</p>
+                      )}
+                      {renderFilePreview(message)}
+                    </div>
+                    <span className="text-[10px] text-muted-foreground mt-1 px-1">
+                      {new Date(message.created_at).toLocaleTimeString('es-ES', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
                   </div>
-                  <span className="text-xs text-muted-foreground mt-1">
-                    {new Date(message.created_at).toLocaleString()}
-                  </span>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </ScrollArea>
 
-        <div className="border-t p-4">
-          <div className="flex gap-2">
+        <div className="border-t p-3 bg-background">
+          <div className="flex gap-2 items-end">
             <input
               type="file"
               ref={fileInputRef}
@@ -218,21 +230,23 @@ export const ResidenceChat = ({ residenceId, currentUserId }: ResidenceChatProps
             />
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               size="icon"
+              className="flex-shrink-0"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
             >
               {uploading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
-                <Paperclip className="h-4 w-4" />
+                <Paperclip className="h-5 w-5" />
               )}
             </Button>
             <Input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Escribe un mensaje..."
+              className="flex-1 rounded-full"
               onKeyPress={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -245,11 +259,12 @@ export const ResidenceChat = ({ residenceId, currentUserId }: ResidenceChatProps
               onClick={() => sendMessage(newMessage)}
               disabled={sending || (!newMessage.trim())}
               size="icon"
+              className="flex-shrink-0 rounded-full"
             >
               {sending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
-                <Send className="h-4 w-4" />
+                <Send className="h-5 w-5" />
               )}
             </Button>
           </div>

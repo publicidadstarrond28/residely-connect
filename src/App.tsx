@@ -8,6 +8,7 @@ import Auth from "./pages/Auth";
 import CreateResidence from "./pages/CreateResidence";
 import ResidenceChat from "./pages/ResidenceChat";
 import ResidenceDetails from "./pages/ResidenceDetails";
+import AdminPanel from "./pages/AdminPanel";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/create-residence" element={<CreateResidence />} />
           <Route path="/residence/:residenceId" element={<ResidenceDetails />} />
           <Route path="/chat/:residenceId" element={<ResidenceChat />} />
+          <Route path="/admin" element={<AdminPanel />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

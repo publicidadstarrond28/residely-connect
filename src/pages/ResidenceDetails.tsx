@@ -14,6 +14,7 @@ const ResidenceDetails = () => {
   const [loading, setLoading] = useState(true);
   const [residence, setResidence] = useState<any>(null);
   const [applyingRooms, setApplyingRooms] = useState<Set<string>>(new Set());
+  const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
     const fetchResidence = async () => {
@@ -25,7 +26,8 @@ const ResidenceDetails = () => {
             profiles:owner_id (
               full_name,
               email,
-              phone
+              phone,
+              user_id
             ),
             residence_photos (
               id,
@@ -53,6 +55,12 @@ const ResidenceDetails = () => {
 
         if (error) throw error;
         setResidence(data);
+
+        // Check if current user is the owner
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && data.profiles?.user_id === user.id) {
+          setIsOwner(true);
+        }
       } catch (error: any) {
         toast.error("Error al cargar la residencia");
         console.error(error);
@@ -262,7 +270,7 @@ const ResidenceDetails = () => {
                                 <span>{room.price_per_month}/mes</span>
                               </div>
                             </div>
-                            {room.is_available && (
+                            {room.is_available && !isOwner && (
                               <Button
                                 size="sm"
                                 onClick={(e) => handleApplyRoom(room.id, e)}

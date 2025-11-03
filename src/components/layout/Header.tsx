@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Building2, LogOut, User, Home, PlusCircle } from "lucide-react";
+import { Bell, Building2, LogOut, User, Home, PlusCircle, LayoutDashboard } from "lucide-react";
 import { toast } from "sonner";
 
 interface Profile {
@@ -167,6 +167,12 @@ export const Header = () => {
                       <Home className="mr-2 h-4 w-4" />
                       Inicio
                     </DropdownMenuItem>
+                    {profile.role === "owner" && (
+                      <DropdownMenuItem onClick={() => navigate("/admin")}>
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        Panel Administrativo
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={() => navigate("/profile")}>
                       <User className="mr-2 h-4 w-4" />
                       Mi Perfil

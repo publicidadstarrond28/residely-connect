@@ -24,10 +24,10 @@ const ResidenceDetails = () => {
           .select(`
             *,
             profiles:owner_id (
+              id,
               full_name,
               email,
-              phone,
-              user_id
+              phone
             ),
             residence_photos (
               id,
@@ -58,8 +58,16 @@ const ResidenceDetails = () => {
 
         // Check if current user is the owner
         const { data: { user } } = await supabase.auth.getUser();
-        if (user && data.profiles?.user_id === user.id) {
-          setIsOwner(true);
+        if (user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("id")
+            .eq("user_id", user.id)
+            .single();
+          
+          if (profile && data.profiles?.id === profile.id) {
+            setIsOwner(true);
+          }
         }
       } catch (error: any) {
         toast.error("Error al cargar la residencia");

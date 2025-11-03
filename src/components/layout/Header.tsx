@@ -107,16 +107,29 @@ export const Header = () => {
           <div className="flex items-center gap-4">
             {profile ? (
               <>
-                {profile.role === "owner" && location.pathname !== "/create-residence" && (
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={() => navigate("/create-residence")}
-                    className="hidden sm:flex bg-gradient-to-r from-primary to-primary/90"
-                  >
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Nueva Residencia
-                  </Button>
+                {profile.role === "owner" && (
+                  <>
+                    {location.pathname !== "/create-residence" && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => navigate("/create-residence")}
+                        className="hidden sm:flex bg-gradient-to-r from-primary to-primary/90"
+                      >
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Nueva Residencia
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate("/admin")}
+                      className="hidden sm:flex"
+                    >
+                      <Building2 className="mr-2 h-4 w-4" />
+                      Panel Admin
+                    </Button>
+                  </>
                 )}
 
                 <DropdownMenu>

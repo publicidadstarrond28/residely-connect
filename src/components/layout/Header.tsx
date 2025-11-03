@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -26,6 +26,7 @@ export const Header = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [notificationCount, setNotificationCount] = useState(0);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     checkUser();
@@ -106,7 +107,7 @@ export const Header = () => {
           <div className="flex items-center gap-4">
             {profile ? (
               <>
-                {profile.role === "owner" && (
+                {profile.role === "owner" && location.pathname !== "/create-residence" && (
                   <Button
                     variant="default"
                     size="sm"

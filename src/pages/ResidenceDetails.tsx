@@ -5,7 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, MapPin, Users, DollarSign, MessageCircle, ArrowLeft } from "lucide-react";
+import { Loader2, MapPin, Users, DollarSign, MessageCircle, ArrowLeft, Send } from "lucide-react";
 import { toast } from "sonner";
 
 const ResidenceDetails = () => {
@@ -13,6 +13,7 @@ const ResidenceDetails = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [residence, setResidence] = useState<any>(null);
+  const [applyingRooms, setApplyingRooms] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchResidence = async () => {
@@ -109,6 +110,69 @@ const ResidenceDetails = () => {
       ? residence.ratings.reduce((acc: number, r: any) => acc + r.rating, 0) / residence.ratings.length
       : 0;
 
+  const handleApplyRoom = async (roomId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    // Check authentication first
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.info("Debes iniciar sesión para solicitar");
+      navigate("/auth");
+      return;
+    }
+
+    setApplyingRooms(prev => new Set(prev).add(roomId));
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!profile) {
+        toast.error("Error al obtener perfil");
+        return;
+      }
+
+      // Check if already applied to this room
+      const { data: existingApplication } = await supabase
+        .from("residence_applications")
+        .select("id")
+        .eq("residence_id", residenceId)
+        .eq("applicant_id", profile.id)
+        .eq("room_id", roomId)
+        .single();
+
+      if (existingApplication) {
+        toast.info("Ya has solicitado esta habitación");
+        return;
+      }
+
+      // Create application
+      const { error } = await supabase
+        .from("residence_applications")
+        .insert({
+          residence_id: residenceId,
+          applicant_id: profile.id,
+          room_id: roomId,
+          status: "pending",
+        });
+
+      if (error) throw error;
+
+      toast.success("Solicitud enviada exitosamente");
+    } catch (error: any) {
+      console.error("Error al solicitar:", error);
+      toast.error("Error al enviar la solicitud");
+    } finally {
+      setApplyingRooms(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(roomId);
+        return newSet;
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -179,7 +243,7 @@ const ResidenceDetails = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {residence.rooms.map((room: any) => (
                         <Card key={room.id}>
-                          <CardContent className="p-4">
+                          <CardContent className="p-4 space-y-3">
                             <div className="flex justify-between items-start mb-2">
                               <h3 className="font-semibold">Habitación {room.room_number}</h3>
                               <Badge variant={room.is_available ? "default" : "secondary"}>
@@ -198,6 +262,26 @@ const ResidenceDetails = () => {
                                 <span>{room.price_per_month}/mes</span>
                               </div>
                             </div>
+                            {room.is_available && (
+                              <Button
+                                size="sm"
+                                onClick={(e) => handleApplyRoom(room.id, e)}
+                                disabled={applyingRooms.has(room.id)}
+                                className="w-full"
+                              >
+                                {applyingRooms.has(room.id) ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Enviando...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Send className="mr-2 h-4 w-4" />
+                                    Solicitar
+                                  </>
+                                )}
+                              </Button>
+                            )}
                           </CardContent>
                         </Card>
                       ))}

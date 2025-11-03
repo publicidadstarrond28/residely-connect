@@ -1,11 +1,8 @@
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Users, Star, DollarSign, MessageCircle, Send } from "lucide-react";
+import { MapPin, Users, Star, DollarSign, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
-import { toast } from "sonner";
 
 interface ResidenceCardProps {
   residence: {
@@ -27,59 +24,6 @@ interface ResidenceCardProps {
 
 export const ResidenceCard = ({ residence }: ResidenceCardProps) => {
   const navigate = useNavigate();
-  const [applying, setApplying] = useState(false);
-
-  const handleApply = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    // Check authentication first
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      toast.info("Debes iniciar sesión para solicitar");
-      navigate("/auth");
-      return;
-    }
-
-    setApplying(true);
-    try {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .single();
-
-      if (!profile) throw new Error("Perfil no encontrado");
-
-      // Check if already applied
-      const { data: existing } = await supabase
-        .from("residence_applications")
-        .select("id")
-        .eq("residence_id", residence.id)
-        .eq("applicant_id", profile.id)
-        .single();
-
-      if (existing) {
-        toast.info("Ya has enviado una solicitud para esta residencia");
-        return;
-      }
-
-      const { error } = await supabase
-        .from("residence_applications")
-        .insert({
-          residence_id: residence.id,
-          applicant_id: profile.id,
-          message: "Estoy interesado en esta residencia",
-        });
-
-      if (error) throw error;
-      
-      toast.success("Solicitud enviada exitosamente");
-    } catch (error: any) {
-      toast.error(error.message || "Error al enviar solicitud");
-    } finally {
-      setApplying(false);
-    }
-  };
 
   const averageRating =
     residence.ratings && residence.ratings.length > 0
@@ -173,17 +117,6 @@ export const ResidenceCard = ({ residence }: ResidenceCardProps) => {
           </div>
         </div>
         <div className="flex gap-2 w-full">
-          {residence.status === "available" && (
-            <Button
-              size="sm"
-              onClick={handleApply}
-              disabled={applying}
-              className="flex-1"
-            >
-              <Send className="h-4 w-4 mr-1" />
-              {applying ? "Enviando..." : "Solicitar"}
-            </Button>
-          )}
           <Button
             variant="outline"
             size="sm"

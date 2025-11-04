@@ -5,8 +5,9 @@ import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, MapPin, Users, DollarSign, MessageCircle, ArrowLeft, Send } from "lucide-react";
+import { Loader2, MapPin, Users, DollarSign, MessageCircle, ArrowLeft, Send, CheckCircle, XCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { useRoomApplicationStatus } from "@/hooks/useRoomApplicationStatus";
 
 const ResidenceDetails = () => {
   const { residenceId } = useParams();
@@ -15,6 +16,9 @@ const ResidenceDetails = () => {
   const [residence, setResidence] = useState<any>(null);
   const [applyingRooms, setApplyingRooms] = useState<Set<string>>(new Set());
   const [isOwner, setIsOwner] = useState(false);
+  const [currentProfileId, setCurrentProfileId] = useState<string | null>(null);
+  
+  const { applicationStatus } = useRoomApplicationStatus(residenceId, currentProfileId);
 
   useEffect(() => {
     const fetchResidence = async () => {
@@ -65,8 +69,11 @@ const ResidenceDetails = () => {
             .eq("user_id", user.id)
             .single();
           
-          if (profile && data.profiles?.id === profile.id) {
-            setIsOwner(true);
+          if (profile) {
+            setCurrentProfileId(profile.id);
+            if (data.profiles?.id === profile.id) {
+              setIsOwner(true);
+            }
           }
         }
       } catch (error: any) {
@@ -147,20 +154,6 @@ const ResidenceDetails = () => {
 
       if (!profile) {
         toast.error("Error al obtener perfil");
-        return;
-      }
-
-      // Check if already applied to this room
-      const { data: existingApplication } = await supabase
-        .from("residence_applications")
-        .select("id")
-        .eq("residence_id", residenceId)
-        .eq("applicant_id", profile.id)
-        .eq("room_id", roomId)
-        .single();
-
-      if (existingApplication) {
-        toast.info("Ya has solicitado esta habitación");
         return;
       }
 
@@ -282,13 +275,41 @@ const ResidenceDetails = () => {
                               <Button
                                 size="sm"
                                 onClick={(e) => handleApplyRoom(room.id, e)}
-                                disabled={applyingRooms.has(room.id)}
+                                disabled={
+                                  applyingRooms.has(room.id) || 
+                                  applicationStatus[room.id]?.status === "pending" ||
+                                  applicationStatus[room.id]?.status === "accepted"
+                                }
+                                variant={
+                                  applicationStatus[room.id]?.status === "accepted" 
+                                    ? "default" 
+                                    : applicationStatus[room.id]?.status === "rejected"
+                                    ? "destructive"
+                                    : applicationStatus[room.id]?.status === "pending"
+                                    ? "secondary"
+                                    : "default"
+                                }
                                 className="w-full"
                               >
                                 {applyingRooms.has(room.id) ? (
                                   <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Enviando...
+                                  </>
+                                ) : applicationStatus[room.id]?.status === "accepted" ? (
+                                  <>
+                                    <CheckCircle className="mr-2 h-4 w-4" />
+                                    Aprobado
+                                  </>
+                                ) : applicationStatus[room.id]?.status === "rejected" ? (
+                                  <>
+                                    <XCircle className="mr-2 h-4 w-4" />
+                                    Rechazado
+                                  </>
+                                ) : applicationStatus[room.id]?.status === "pending" ? (
+                                  <>
+                                    <Clock className="mr-2 h-4 w-4" />
+                                    Solicitado
                                   </>
                                 ) : (
                                   <>

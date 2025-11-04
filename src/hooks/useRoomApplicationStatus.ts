@@ -6,6 +6,7 @@ interface ApplicationStatus {
   [roomId: string]: {
     status: string;
     id: string;
+    rejection_count: number;
   };
 }
 
@@ -24,7 +25,7 @@ export const useRoomApplicationStatus = (residenceId: string | undefined, profil
     const fetchApplications = async () => {
       const { data, error } = await supabase
         .from("residence_applications")
-        .select("id, room_id, status")
+        .select("id, room_id, status, rejection_count")
         .eq("residence_id", residenceId)
         .eq("applicant_id", profileId);
 
@@ -37,6 +38,7 @@ export const useRoomApplicationStatus = (residenceId: string | undefined, profil
             statusMap[app.room_id] = {
               status: app.status,
               id: app.id,
+              rejection_count: app.rejection_count || 0,
             };
           }
         });
@@ -67,6 +69,7 @@ export const useRoomApplicationStatus = (residenceId: string | undefined, profil
                 [newApp.room_id]: {
                   status: newApp.status,
                   id: newApp.id,
+                  rejection_count: newApp.rejection_count || 0,
                 },
               }));
             }

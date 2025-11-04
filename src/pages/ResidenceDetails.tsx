@@ -144,6 +144,13 @@ const ResidenceDetails = () => {
       return;
     }
 
+    // Check if already reached rejection limit
+    const existingApp = applicationStatus[roomId];
+    if (existingApp && existingApp.rejection_count >= 3) {
+      toast.error("Has alcanzado el límite de solicitudes para esta habitación");
+      return;
+    }
+
     setApplyingRooms(prev => new Set(prev).add(roomId));
     try {
       const { data: profile } = await supabase
@@ -157,19 +164,29 @@ const ResidenceDetails = () => {
         return;
       }
 
-      // Create application
-      const { error } = await supabase
-        .from("residence_applications")
-        .insert({
-          residence_id: residenceId,
-          applicant_id: profile.id,
-          room_id: roomId,
-          status: "pending",
-        });
+      // If application exists and was rejected, update it to pending
+      if (existingApp && existingApp.status === "rejected") {
+        const { error } = await supabase
+          .from("residence_applications")
+          .update({ status: "pending" })
+          .eq("id", existingApp.id);
 
-      if (error) throw error;
+        if (error) throw error;
+        toast.success("Solicitud reenviada exitosamente");
+      } else {
+        // Create new application
+        const { error } = await supabase
+          .from("residence_applications")
+          .insert({
+            residence_id: residenceId,
+            applicant_id: profile.id,
+            room_id: roomId,
+            status: "pending",
+          });
 
-      toast.success("Solicitud enviada exitosamente");
+        if (error) throw error;
+        toast.success("Solicitud enviada exitosamente");
+      }
     } catch (error: any) {
       console.error("Error al solicitar:", error);
       toast.error("Error al enviar la solicitud");
@@ -278,7 +295,8 @@ const ResidenceDetails = () => {
                                 disabled={
                                   applyingRooms.has(room.id) || 
                                   applicationStatus[room.id]?.status === "pending" ||
-                                  applicationStatus[room.id]?.status === "accepted"
+                                  applicationStatus[room.id]?.status === "accepted" ||
+                                  (applicationStatus[room.id]?.rejection_count >= 3)
                                 }
                                 variant={
                                   applicationStatus[room.id]?.status === "accepted" 
@@ -301,10 +319,15 @@ const ResidenceDetails = () => {
                                     <CheckCircle className="mr-2 h-4 w-4" />
                                     Aprobado
                                   </>
-                                ) : applicationStatus[room.id]?.status === "rejected" ? (
+                                ) : applicationStatus[room.id]?.rejection_count >= 3 ? (
                                   <>
                                     <XCircle className="mr-2 h-4 w-4" />
-                                    Rechazado
+                                    Límite alcanzado
+                                  </>
+                                ) : applicationStatus[room.id]?.status === "rejected" ? (
+                                  <>
+                                    <Send className="mr-2 h-4 w-4" />
+                                    Reintentar ({3 - applicationStatus[room.id].rejection_count} restantes)
                                   </>
                                 ) : applicationStatus[room.id]?.status === "pending" ? (
                                   <>

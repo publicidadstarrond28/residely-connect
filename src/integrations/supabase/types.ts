@@ -217,6 +217,7 @@ export type Database = {
           created_at: string
           id: string
           message: string | null
+          rejection_count: number
           residence_id: string
           room_id: string | null
           status: string | null
@@ -227,6 +228,7 @@ export type Database = {
           created_at?: string
           id?: string
           message?: string | null
+          rejection_count?: number
           residence_id: string
           room_id?: string | null
           status?: string | null
@@ -237,6 +239,7 @@ export type Database = {
           created_at?: string
           id?: string
           message?: string | null
+          rejection_count?: number
           residence_id?: string
           room_id?: string | null
           status?: string | null

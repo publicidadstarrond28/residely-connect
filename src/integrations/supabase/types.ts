@@ -133,6 +133,107 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          application_id: string | null
+          banco_origen: string | null
+          cedula: string | null
+          comprobante_url: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          fecha_pago: string | null
+          id: string
+          moneda: Database["public"]["Enums"]["currency_type"] | null
+          months_paid: number
+          monto_total: number | null
+          numero_referencia: string | null
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          rejection_reason: string | null
+          residence_id: string
+          room_id: string | null
+          status: Database["public"]["Enums"]["payment_status"]
+          telefono_origen: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          application_id?: string | null
+          banco_origen?: string | null
+          cedula?: string | null
+          comprobante_url?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          fecha_pago?: string | null
+          id?: string
+          moneda?: Database["public"]["Enums"]["currency_type"] | null
+          months_paid: number
+          monto_total?: number | null
+          numero_referencia?: string | null
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          rejection_reason?: string | null
+          residence_id: string
+          room_id?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          telefono_origen?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          application_id?: string | null
+          banco_origen?: string | null
+          cedula?: string | null
+          comprobante_url?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          fecha_pago?: string | null
+          id?: string
+          moneda?: Database["public"]["Enums"]["currency_type"] | null
+          months_paid?: number
+          monto_total?: number | null
+          numero_referencia?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          rejection_reason?: string | null
+          residence_id?: string
+          room_id?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          telefono_origen?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "residence_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_confirmed_by_fkey"
+            columns: ["confirmed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_residence_id_fkey"
+            columns: ["residence_id"]
+            isOneToOne: false
+            referencedRelation: "residences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -427,6 +528,9 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      currency_type: "BS" | "USD"
+      payment_method: "pago_movil" | "efectivo"
+      payment_status: "pending" | "confirmed" | "rejected"
       residence_gender: "male" | "female" | "mixed"
       residence_status: "available" | "occupied"
       residence_type: "residence" | "hotel" | "apartment" | "room" | "studio"
@@ -558,6 +662,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      currency_type: ["BS", "USD"],
+      payment_method: ["pago_movil", "efectivo"],
+      payment_status: ["pending", "confirmed", "rejected"],
       residence_gender: ["male", "female", "mixed"],
       residence_status: ["available", "occupied"],
       residence_type: ["residence", "hotel", "apartment", "room", "studio"],

@@ -144,9 +144,9 @@ const ResidenceDetails = () => {
       return;
     }
 
-    // Check if already reached rejection limit
-    const existingApp = applicationStatus[roomId];
-    if (existingApp && existingApp.rejection_count >= 3) {
+    // Check if max rejections reached
+    const currentApplication = applicationStatus[roomId];
+    if (currentApplication?.rejection_count >= 3) {
       toast.error("Has alcanzado el límite de solicitudes para esta habitación");
       return;
     }
@@ -164,15 +164,16 @@ const ResidenceDetails = () => {
         return;
       }
 
-      // If application exists and was rejected, update it to pending
-      if (existingApp && existingApp.status === "rejected") {
+      // Check if there's a rejected application to update
+      if (currentApplication && currentApplication.status === "rejected") {
+        // Update existing application back to pending
         const { error } = await supabase
           .from("residence_applications")
           .update({ status: "pending" })
-          .eq("id", existingApp.id);
+          .eq("id", currentApplication.id);
 
         if (error) throw error;
-        toast.success("Solicitud reenviada exitosamente");
+        toast.success("Solicitud enviada nuevamente");
       } else {
         // Create new application
         const { error } = await supabase
@@ -289,58 +290,65 @@ const ResidenceDetails = () => {
                               </div>
                             </div>
                             {room.is_available && !isOwner && (
-                              <Button
-                                size="sm"
-                                onClick={(e) => handleApplyRoom(room.id, e)}
-                                disabled={
-                                  applyingRooms.has(room.id) || 
-                                  applicationStatus[room.id]?.status === "pending" ||
-                                  applicationStatus[room.id]?.status === "accepted" ||
-                                  (applicationStatus[room.id]?.rejection_count >= 3)
-                                }
-                                variant={
-                                  applicationStatus[room.id]?.status === "accepted" 
-                                    ? "default" 
-                                    : applicationStatus[room.id]?.status === "rejected"
-                                    ? "destructive"
-                                    : applicationStatus[room.id]?.status === "pending"
-                                    ? "secondary"
-                                    : "default"
-                                }
-                                className="w-full"
-                              >
-                                {applyingRooms.has(room.id) ? (
-                                  <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Enviando...
-                                  </>
-                                ) : applicationStatus[room.id]?.status === "accepted" ? (
-                                  <>
-                                    <CheckCircle className="mr-2 h-4 w-4" />
-                                    Aprobado
-                                  </>
-                                ) : applicationStatus[room.id]?.rejection_count >= 3 ? (
-                                  <>
-                                    <XCircle className="mr-2 h-4 w-4" />
-                                    Límite alcanzado
-                                  </>
-                                ) : applicationStatus[room.id]?.status === "rejected" ? (
-                                  <>
-                                    <Send className="mr-2 h-4 w-4" />
-                                    Reintentar ({3 - applicationStatus[room.id].rejection_count} restantes)
-                                  </>
-                                ) : applicationStatus[room.id]?.status === "pending" ? (
-                                  <>
-                                    <Clock className="mr-2 h-4 w-4" />
-                                    Solicitado
-                                  </>
-                                ) : (
-                                  <>
-                                    <Send className="mr-2 h-4 w-4" />
-                                    Solicitar
-                                  </>
+                              <div className="space-y-1">
+                                <Button
+                                  size="sm"
+                                  onClick={(e) => handleApplyRoom(room.id, e)}
+                                  disabled={
+                                    applyingRooms.has(room.id) || 
+                                    applicationStatus[room.id]?.status === "pending" ||
+                                    applicationStatus[room.id]?.status === "accepted" ||
+                                    (applicationStatus[room.id]?.rejection_count >= 3)
+                                  }
+                                  variant={
+                                    applicationStatus[room.id]?.status === "accepted" 
+                                      ? "default" 
+                                      : applicationStatus[room.id]?.status === "rejected"
+                                      ? "destructive"
+                                      : applicationStatus[room.id]?.status === "pending"
+                                      ? "secondary"
+                                      : "default"
+                                  }
+                                  className="w-full"
+                                >
+                                  {applyingRooms.has(room.id) ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Enviando...
+                                    </>
+                                  ) : applicationStatus[room.id]?.status === "accepted" ? (
+                                    <>
+                                      <CheckCircle className="mr-2 h-4 w-4" />
+                                      Aprobado
+                                    </>
+                                  ) : applicationStatus[room.id]?.rejection_count >= 3 ? (
+                                    <>
+                                      <XCircle className="mr-2 h-4 w-4" />
+                                      Límite alcanzado
+                                    </>
+                                  ) : applicationStatus[room.id]?.status === "rejected" ? (
+                                    <>
+                                      <Send className="mr-2 h-4 w-4" />
+                                      Reintentar ({3 - applicationStatus[room.id].rejection_count} restantes)
+                                    </>
+                                  ) : applicationStatus[room.id]?.status === "pending" ? (
+                                    <>
+                                      <Clock className="mr-2 h-4 w-4" />
+                                      Solicitado
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Send className="mr-2 h-4 w-4" />
+                                      Solicitar
+                                    </>
+                                  )}
+                                </Button>
+                                {applicationStatus[room.id]?.rejection_count > 0 && applicationStatus[room.id]?.rejection_count < 3 && (
+                                  <p className="text-xs text-muted-foreground text-center">
+                                    {applicationStatus[room.id]?.rejection_count} rechazo(s)
+                                  </p>
                                 )}
-                              </Button>
+                              </div>
                             )}
                           </CardContent>
                         </Card>

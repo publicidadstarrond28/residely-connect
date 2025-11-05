@@ -9,6 +9,9 @@ import CreateResidence from "./pages/CreateResidence";
 import ResidenceChat from "./pages/ResidenceChat";
 import ResidenceDetails from "./pages/ResidenceDetails";
 import AdminDashboard from "./pages/AdminDashboard";
+import PaymentPage from "./pages/PaymentPage";
+import OwnerPayments from "./pages/OwnerPayments";
+import MyPayments from "./pages/MyPayments";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +29,9 @@ const App = () => (
           <Route path="/residence/:residenceId" element={<ResidenceDetails />} />
           <Route path="/chat/:residenceId" element={<ResidenceChat />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/payment" element={<PaymentPage />} />
+          <Route path="/owner-payments" element={<OwnerPayments />} />
+          <Route path="/my-payments" element={<MyPayments />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -476,11 +476,44 @@ export type Database = {
           },
         ]
       }
+      room_photos: {
+        Row: {
+          created_at: string
+          id: string
+          is_primary: boolean | null
+          photo_url: string
+          room_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean | null
+          photo_url: string
+          room_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean | null
+          photo_url?: string
+          room_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_photos_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rooms: {
         Row: {
           capacity: number
           created_at: string
           current_occupants: number
+          gender_preference: string | null
           id: string
           is_available: boolean
           price_per_month: number
@@ -492,6 +525,7 @@ export type Database = {
           capacity?: number
           created_at?: string
           current_occupants?: number
+          gender_preference?: string | null
           id?: string
           is_available?: boolean
           price_per_month: number
@@ -503,6 +537,7 @@ export type Database = {
           capacity?: number
           created_at?: string
           current_occupants?: number
+          gender_preference?: string | null
           id?: string
           is_available?: boolean
           price_per_month?: number
@@ -533,7 +568,7 @@ export type Database = {
       payment_status: "pending" | "confirmed" | "rejected"
       residence_gender: "male" | "female" | "mixed"
       residence_status: "available" | "occupied"
-      residence_type: "residence" | "hotel" | "apartment" | "room" | "studio"
+      residence_type: "apartment" | "house" | "room" | "hotel"
       user_role: "resident" | "owner"
     }
     CompositeTypes: {
@@ -667,7 +702,7 @@ export const Constants = {
       payment_status: ["pending", "confirmed", "rejected"],
       residence_gender: ["male", "female", "mixed"],
       residence_status: ["available", "occupied"],
-      residence_type: ["residence", "hotel", "apartment", "room", "studio"],
+      residence_type: ["apartment", "house", "room", "hotel"],
       user_role: ["resident", "owner"],
     },
   },

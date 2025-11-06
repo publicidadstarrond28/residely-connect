@@ -58,6 +58,11 @@ export const ResidenceForm = () => {
         throw new Error("Debes agregar al menos una habitación");
       }
 
+      // Validar que para tipos que no sean apartamento, el precio sea en las habitaciones
+      if (formData.residence_type !== 'apartment' && rooms.some(r => !r.price_per_month)) {
+        throw new Error("Todas las habitaciones deben tener un precio");
+      }
+
       // Create residence
       const { data: residence, error } = await supabase
         .from("residences")
@@ -71,10 +76,19 @@ export const ResidenceForm = () => {
           country: formData.country,
           latitude: formData.latitude,
           longitude: formData.longitude,
-          price_per_month: parseFloat(formData.price_per_month),
-          capacity: parseInt(formData.capacity),
+          // Solo usar precio de residencia para apartamentos
+          price_per_month: formData.residence_type === 'apartment' 
+            ? parseFloat(formData.price_per_month) 
+            : 0,
+          // Solo usar capacidad para apartamentos
+          capacity: formData.residence_type === 'apartment' 
+            ? parseInt(formData.capacity) 
+            : rooms.reduce((sum, room) => sum + room.capacity, 0),
           residence_type: formData.residence_type,
-          gender_preference: formData.gender_preference,
+          // Solo usar género de residencia para apartamentos
+          gender_preference: formData.residence_type === 'apartment' 
+            ? formData.gender_preference 
+            : 'mixed',
           amenities: formData.amenities,
         })
         .select()
@@ -88,6 +102,7 @@ export const ResidenceForm = () => {
         room_number: room.room_number,
         capacity: room.capacity,
         price_per_month: parseFloat(room.price_per_month),
+        gender_preference: room.gender_preference || 'mixed',
       }));
 
       const { error: roomsError } = await supabase
@@ -96,8 +111,52 @@ export const ResidenceForm = () => {
 
       if (roomsError) throw roomsError;
 
-      // Upload photos
-      if (photos.length > 0) {
+      // Upload room photos for house, room, and hotel types
+      if (formData.residence_type !== 'apartment') {
+        for (const room of rooms) {
+          if (room.photos && room.photos.length > 0) {
+            const roomRecord = (await supabase
+              .from('rooms')
+              .select('id')
+              .eq('residence_id', residence.id)
+              .eq('room_number', room.room_number)
+              .single()).data;
+
+            if (roomRecord) {
+              const roomPhotoUploads = room.photos.map(async (photo) => {
+                const fileExt = photo.file.name.split('.').pop();
+                const fileName = `rooms/${roomRecord.id}/${Math.random()}.${fileExt}`;
+                
+                const { error: uploadError } = await supabase.storage
+                  .from('residence-photos')
+                  .upload(fileName, photo.file);
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage
+                  .from('residence-photos')
+                  .getPublicUrl(fileName);
+
+                return {
+                  room_id: roomRecord.id,
+                  photo_url: publicUrl,
+                  is_primary: photo.isPrimary,
+                };
+              });
+
+              const roomPhotoRecords = await Promise.all(roomPhotoUploads);
+              const { error: roomPhotosError } = await supabase
+                .from('room_photos')
+                .insert(roomPhotoRecords as any);
+
+              if (roomPhotosError) throw roomPhotosError;
+            }
+          }
+        }
+      }
+
+      // Upload residence photos (only for apartments)
+      if (photos.length > 0 && formData.residence_type === 'apartment') {
         const photoUploads = photos.map(async (photo) => {
           const fileExt = photo.file.name.split('.').pop();
           const fileName = `${residence.id}/${Math.random()}.${fileExt}`;
@@ -264,30 +323,36 @@ export const ResidenceForm = () => {
             <h3 className="text-lg font-semibold">Detalles</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="price">Precio mensual (USD) *</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  step="0.01"
-                  value={formData.price_per_month}
-                  onChange={(e) => setFormData({ ...formData, price_per_month: e.target.value })}
-                  placeholder="300.00"
-                  required
-                />
-              </div>
+              {/* Solo mostrar precio para apartamentos */}
+              {formData.residence_type === 'apartment' && (
+                <div>
+                  <Label htmlFor="price">Precio mensual (USD) *</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    value={formData.price_per_month}
+                    onChange={(e) => setFormData({ ...formData, price_per_month: e.target.value })}
+                    placeholder="300.00"
+                    required
+                  />
+                </div>
+              )}
 
-              <div>
-                <Label htmlFor="capacity">Capacidad *</Label>
-                <Input
-                  id="capacity"
-                  type="number"
-                  min="1"
-                  value={formData.capacity}
-                  onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
-                  required
-                />
-              </div>
+              {/* Solo mostrar capacidad para apartamentos */}
+              {formData.residence_type === 'apartment' && (
+                <div>
+                  <Label htmlFor="capacity">Capacidad *</Label>
+                  <Input
+                    id="capacity"
+                    type="number"
+                    min="1"
+                    value={formData.capacity}
+                    onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
+                    required
+                  />
+                </div>
+              )}
 
               <div>
                 <Label htmlFor="type">Tipo de Residencia *</Label>
@@ -300,37 +365,46 @@ export const ResidenceForm = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="apartment">Apartamento</SelectItem>
-                    <SelectItem value="house">Casa</SelectItem>
+                    <SelectItem value="house">Casa por Habitación</SelectItem>
                     <SelectItem value="room">Habitación</SelectItem>
-                    <SelectItem value="studio">Estudio</SelectItem>
+                    <SelectItem value="hotel">Hotel</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div>
-                <Label htmlFor="gender">Preferencia de Género *</Label>
-                <Select
-                  value={formData.gender_preference}
-                  onValueChange={(value: any) => setFormData({ ...formData, gender_preference: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="mixed">Sin preferencia</SelectItem>
-                    <SelectItem value="male">Solo hombres</SelectItem>
-                    <SelectItem value="female">Solo mujeres</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Solo mostrar género para apartamentos */}
+              {formData.residence_type === 'apartment' && (
+                <div>
+                  <Label htmlFor="gender">Preferencia de Género *</Label>
+                  <Select
+                    value={formData.gender_preference}
+                    onValueChange={(value: any) => setFormData({ ...formData, gender_preference: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mixed">Sin preferencia</SelectItem>
+                      <SelectItem value="male">Solo hombres</SelectItem>
+                      <SelectItem value="female">Solo mujeres</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Rooms */}
-          <RoomManagement rooms={rooms} onChange={setRooms} />
+          <RoomManagement 
+            rooms={rooms} 
+            onChange={setRooms}
+            residenceType={formData.residence_type}
+          />
 
-          {/* Photos */}
-          <PhotoUpload photos={photos} onChange={setPhotos} />
+          {/* Photos - Solo para apartamentos */}
+          {formData.residence_type === 'apartment' && (
+            <PhotoUpload photos={photos} onChange={setPhotos} />
+          )}
 
           {/* Amenities */}
           <div className="space-y-4">

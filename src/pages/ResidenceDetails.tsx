@@ -5,7 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, MapPin, Users, DollarSign, MessageCircle, ArrowLeft, Send, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Loader2, MapPin, Users, DollarSign, MessageCircle, ArrowLeft, Send, CheckCircle, XCircle, Clock, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { useRoomApplicationStatus } from "@/hooks/useRoomApplicationStatus";
 
@@ -335,21 +335,32 @@ const ResidenceDetails = () => {
                                     <>
                                       <Clock className="mr-2 h-4 w-4" />
                                       Solicitado
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Send className="mr-2 h-4 w-4" />
-                                      Solicitar
-                                    </>
-                                  )}
-                                </Button>
-                                {applicationStatus[room.id]?.rejection_count > 0 && applicationStatus[room.id]?.rejection_count < 3 && (
-                                  <p className="text-xs text-muted-foreground text-center">
-                                    {applicationStatus[room.id]?.rejection_count} rechazo(s)
-                                  </p>
-                                )}
-                              </div>
-                            )}
+                                     </>
+                                   ) : (
+                                     <>
+                                       <Send className="mr-2 h-4 w-4" />
+                                       Solicitar
+                                     </>
+                                   )}
+                                 </Button>
+                                 {applicationStatus[room.id]?.rejection_count > 0 && applicationStatus[room.id]?.rejection_count < 3 && (
+                                   <p className="text-xs text-muted-foreground text-center">
+                                     {applicationStatus[room.id]?.rejection_count} rechazo(s)
+                                   </p>
+                                 )}
+                                 {applicationStatus[room.id]?.status === "accepted" && (
+                                   <Button
+                                     size="sm"
+                                     variant="secondary"
+                                     onClick={() => navigate(`/payment?residence=${residenceId}&room=${room.id}&application=${applicationStatus[room.id].id}`)}
+                                     className="w-full mt-2"
+                                   >
+                                     <CreditCard className="mr-2 h-4 w-4" />
+                                     Realizar Pago
+                                   </Button>
+                                 )}
+                               </div>
+                             )}
                           </CardContent>
                         </Card>
                       ))}

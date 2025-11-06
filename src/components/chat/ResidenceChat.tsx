@@ -1,25 +1,30 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useConversation } from "@/hooks/useConversation";
-import { Send, Paperclip, File, Loader2 } from "lucide-react";
+import { Send, Paperclip, File, Loader2, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 
 interface ResidenceChatProps {
   conversationId: string | null;
   currentProfileId: string;
   otherUserName: string;
+  residenceId?: string;
 }
 
-export const ResidenceChat = ({ conversationId, currentProfileId, otherUserName }: ResidenceChatProps) => {
+export const ResidenceChat = ({ conversationId, currentProfileId, otherUserName, residenceId }: ResidenceChatProps) => {
+  const navigate = useNavigate();
   const { messages, loading } = useConversation(conversationId);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [application, setApplication] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -28,6 +33,37 @@ export const ResidenceChat = ({ conversationId, currentProfileId, otherUserName 
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  useEffect(() => {
+    const loadApplication = async () => {
+      if (!residenceId || !currentProfileId) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", currentProfileId)
+        .single();
+
+      if (profile?.role === "resident") {
+        const { data: appData } = await supabase
+          .from("residence_applications")
+          .select(`
+            *,
+            rooms:room_id (
+              room_number,
+              price_per_month
+            )
+          `)
+          .eq("residence_id", residenceId)
+          .eq("applicant_id", currentProfileId)
+          .maybeSingle();
+
+        setApplication(appData);
+      }
+    };
+
+    loadApplication();
+  }, [residenceId, currentProfileId]);
 
   const sendMessage = async (content: string, fileData?: any) => {
     if ((!content.trim() && !fileData) || !conversationId) return;
@@ -170,6 +206,25 @@ export const ResidenceChat = ({ conversationId, currentProfileId, otherUserName 
       <CardHeader className="border-b">
         <CardTitle className="text-lg">Chat con {otherUserName}</CardTitle>
       </CardHeader>
+      {application?.status === "accepted" && (
+        <Alert className="mx-4 mt-4 bg-primary/10 border-primary">
+          <DollarSign className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between">
+            <span>Tu aplicación fue aceptada. Procede con el pago.</span>
+            <Button
+              size="sm"
+              onClick={() =>
+                navigate(
+                  `/payment?residenceId=${residenceId}&roomId=${application.room_id}&applicationId=${application.id}`
+                )
+              }
+            >
+              <DollarSign className="h-4 w-4 mr-1" />
+              Pagar Ahora
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
       <CardContent className="p-0">
         <ScrollArea className="h-[500px] p-4 bg-gradient-to-b from-background to-muted/20" ref={scrollRef}>
           <div className="space-y-3">

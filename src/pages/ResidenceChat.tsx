@@ -154,6 +154,7 @@ const ResidenceChat = () => {
             conversationId={conversationId} 
             currentProfileId={currentProfileId}
             otherUserName={otherUserName}
+            residenceId={residenceId}
           />
         </div>
       </main>

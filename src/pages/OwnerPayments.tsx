@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { OwnerPaymentPanel } from "@/components/payment/OwnerPaymentPanel";
-import { PaymentStatsWidget } from "@/components/payment/PaymentStatsWidget";
+import { PaymentsDashboard } from "@/components/payment/PaymentsDashboard";
 import { supabase } from "@/integrations/supabase/client";
 
 const OwnerPayments = () => {
@@ -51,7 +51,8 @@ const OwnerPayments = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <div className="container mx-auto px-4 py-8 space-y-6">
-        <PaymentStatsWidget ownerId={profile.id} />
+        <h1 className="text-3xl font-bold">Dashboard de Pagos</h1>
+        <PaymentsDashboard ownerId={profile.id} />
         <OwnerPaymentPanel ownerId={profile.id} />
       </div>
     </div>

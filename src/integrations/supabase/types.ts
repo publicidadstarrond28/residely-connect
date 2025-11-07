@@ -14,6 +14,73 @@ export type Database = {
   }
   public: {
     Tables: {
+      apartment_area_photos: {
+        Row: {
+          area_id: string
+          created_at: string
+          id: string
+          is_primary: boolean | null
+          photo_url: string
+        }
+        Insert: {
+          area_id: string
+          created_at?: string
+          id?: string
+          is_primary?: boolean | null
+          photo_url: string
+        }
+        Update: {
+          area_id?: string
+          created_at?: string
+          id?: string
+          is_primary?: boolean | null
+          photo_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "apartment_area_photos_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "apartment_areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      apartment_areas: {
+        Row: {
+          area_name: string | null
+          area_type: string
+          created_at: string
+          id: string
+          residence_id: string
+          updated_at: string
+        }
+        Insert: {
+          area_name?: string | null
+          area_type: string
+          created_at?: string
+          id?: string
+          residence_id: string
+          updated_at?: string
+        }
+        Update: {
+          area_name?: string | null
+          area_type?: string
+          created_at?: string
+          id?: string
+          residence_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "apartment_areas_residence_id_fkey"
+            columns: ["residence_id"]
+            isOneToOne: false
+            referencedRelation: "residences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           client_id: string
@@ -129,41 +196,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      payment_reminders: {
-        Row: {
-          application_id: string
-          created_at: string
-          days_before: number
-          id: string
-          is_enabled: boolean
-          updated_at: string
-        }
-        Insert: {
-          application_id: string
-          created_at?: string
-          days_before?: number
-          id?: string
-          is_enabled?: boolean
-          updated_at?: string
-        }
-        Update: {
-          application_id?: string
-          created_at?: string
-          days_before?: number
-          id?: string
-          is_enabled?: boolean
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "payment_reminders_application_id_fkey"
-            columns: ["application_id"]
-            isOneToOne: false
-            referencedRelation: "residence_applications"
             referencedColumns: ["id"]
           },
         ]
@@ -353,7 +385,6 @@ export type Database = {
           created_at: string
           id: string
           message: string | null
-          next_payment_due: string | null
           rejection_count: number
           residence_id: string
           room_id: string | null
@@ -365,7 +396,6 @@ export type Database = {
           created_at?: string
           id?: string
           message?: string | null
-          next_payment_due?: string | null
           rejection_count?: number
           residence_id: string
           room_id?: string | null
@@ -377,7 +407,6 @@ export type Database = {
           created_at?: string
           id?: string
           message?: string | null
-          next_payment_due?: string | null
           rejection_count?: number
           residence_id?: string
           room_id?: string | null
@@ -404,6 +433,59 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      residence_payment_config: {
+        Row: {
+          banco_destino: string | null
+          cedula_titular: string | null
+          created_at: string
+          efectivo_enabled: boolean
+          id: string
+          nombre_titular: string | null
+          pago_movil_enabled: boolean
+          precio_bs: number | null
+          precio_usd: number | null
+          residence_id: string
+          telefono_destino: string | null
+          updated_at: string
+        }
+        Insert: {
+          banco_destino?: string | null
+          cedula_titular?: string | null
+          created_at?: string
+          efectivo_enabled?: boolean
+          id?: string
+          nombre_titular?: string | null
+          pago_movil_enabled?: boolean
+          precio_bs?: number | null
+          precio_usd?: number | null
+          residence_id: string
+          telefono_destino?: string | null
+          updated_at?: string
+        }
+        Update: {
+          banco_destino?: string | null
+          cedula_titular?: string | null
+          created_at?: string
+          efectivo_enabled?: boolean
+          id?: string
+          nombre_titular?: string | null
+          pago_movil_enabled?: boolean
+          precio_bs?: number | null
+          precio_usd?: number | null
+          residence_id?: string
+          telefono_destino?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "residence_payment_config_residence_id_fkey"
+            columns: ["residence_id"]
+            isOneToOne: true
+            referencedRelation: "residences"
             referencedColumns: ["id"]
           },
         ]
@@ -514,11 +596,44 @@ export type Database = {
           },
         ]
       }
+      room_photos: {
+        Row: {
+          created_at: string
+          id: string
+          is_primary: boolean | null
+          photo_url: string
+          room_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean | null
+          photo_url: string
+          room_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean | null
+          photo_url?: string
+          room_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_photos_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rooms: {
         Row: {
           capacity: number
           created_at: string
           current_occupants: number
+          gender_preference: string | null
           id: string
           is_available: boolean
           price_per_month: number
@@ -530,6 +645,7 @@ export type Database = {
           capacity?: number
           created_at?: string
           current_occupants?: number
+          gender_preference?: string | null
           id?: string
           is_available?: boolean
           price_per_month: number
@@ -541,6 +657,7 @@ export type Database = {
           capacity?: number
           created_at?: string
           current_occupants?: number
+          gender_preference?: string | null
           id?: string
           is_available?: boolean
           price_per_month?: number
@@ -571,7 +688,7 @@ export type Database = {
       payment_status: "pending" | "confirmed" | "rejected"
       residence_gender: "male" | "female" | "mixed"
       residence_status: "available" | "occupied"
-      residence_type: "residence" | "hotel" | "apartment" | "room" | "studio"
+      residence_type: "apartment" | "house" | "room" | "hotel"
       user_role: "resident" | "owner"
     }
     CompositeTypes: {
@@ -705,7 +822,7 @@ export const Constants = {
       payment_status: ["pending", "confirmed", "rejected"],
       residence_gender: ["male", "female", "mixed"],
       residence_status: ["available", "occupied"],
-      residence_type: ["residence", "hotel", "apartment", "room", "studio"],
+      residence_type: ["apartment", "house", "room", "hotel"],
       user_role: ["resident", "owner"],
     },
   },

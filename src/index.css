@@ -44,6 +44,12 @@ All colors MUST be HSL.
     --gradient-hero: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(24 100% 98%) 100%);
     --shadow-elegant: 0 10px 40px -10px hsl(24 95% 53% / 0.2);
     --shadow-card: 0 4px 20px -2px hsl(24 40% 20% / 0.08);
+
+    --chart-1: 142 76% 36%;
+    --chart-2: 48 96% 53%;
+    --chart-3: 0 84% 60%;
+    --chart-4: 217 91% 60%;
+    --chart-5: 280 65% 60%;
   }
 
   .dark {
@@ -79,6 +85,12 @@ All colors MUST be HSL.
     --gradient-hero: linear-gradient(180deg, hsl(222 47% 11%) 0%, hsl(217 33% 17%) 100%);
     --shadow-elegant: 0 10px 40px -10px hsl(24 95% 53% / 0.3);
     --shadow-card: 0 4px 20px -2px hsl(0 0% 0% / 0.2);
+
+    --chart-1: 142 70% 45%;
+    --chart-2: 48 96% 53%;
+    --chart-3: 0 84% 60%;
+    --chart-4: 217 91% 60%;
+    --chart-5: 280 65% 60%;
   }
 }
 

@@ -14,6 +14,73 @@ export type Database = {
   }
   public: {
     Tables: {
+      apartment_area_photos: {
+        Row: {
+          area_id: string
+          created_at: string
+          id: string
+          is_primary: boolean | null
+          photo_url: string
+        }
+        Insert: {
+          area_id: string
+          created_at?: string
+          id?: string
+          is_primary?: boolean | null
+          photo_url: string
+        }
+        Update: {
+          area_id?: string
+          created_at?: string
+          id?: string
+          is_primary?: boolean | null
+          photo_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "apartment_area_photos_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "apartment_areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      apartment_areas: {
+        Row: {
+          area_name: string | null
+          area_type: string
+          created_at: string
+          id: string
+          residence_id: string
+          updated_at: string
+        }
+        Insert: {
+          area_name?: string | null
+          area_type: string
+          created_at?: string
+          id?: string
+          residence_id: string
+          updated_at?: string
+        }
+        Update: {
+          area_name?: string | null
+          area_type?: string
+          created_at?: string
+          id?: string
+          residence_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "apartment_areas_residence_id_fkey"
+            columns: ["residence_id"]
+            isOneToOne: false
+            referencedRelation: "residences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           client_id: string
@@ -366,6 +433,59 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      residence_payment_config: {
+        Row: {
+          banco_destino: string | null
+          cedula_titular: string | null
+          created_at: string
+          efectivo_enabled: boolean
+          id: string
+          nombre_titular: string | null
+          pago_movil_enabled: boolean
+          precio_bs: number | null
+          precio_usd: number | null
+          residence_id: string
+          telefono_destino: string | null
+          updated_at: string
+        }
+        Insert: {
+          banco_destino?: string | null
+          cedula_titular?: string | null
+          created_at?: string
+          efectivo_enabled?: boolean
+          id?: string
+          nombre_titular?: string | null
+          pago_movil_enabled?: boolean
+          precio_bs?: number | null
+          precio_usd?: number | null
+          residence_id: string
+          telefono_destino?: string | null
+          updated_at?: string
+        }
+        Update: {
+          banco_destino?: string | null
+          cedula_titular?: string | null
+          created_at?: string
+          efectivo_enabled?: boolean
+          id?: string
+          nombre_titular?: string | null
+          pago_movil_enabled?: boolean
+          precio_bs?: number | null
+          precio_usd?: number | null
+          residence_id?: string
+          telefono_destino?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "residence_payment_config_residence_id_fkey"
+            columns: ["residence_id"]
+            isOneToOne: true
+            referencedRelation: "residences"
             referencedColumns: ["id"]
           },
         ]

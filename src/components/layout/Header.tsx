@@ -11,9 +11,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import { Bell, Building2, LogOut, User, Home, PlusCircle, LayoutDashboard } from "lucide-react";
+import { Building2, LogOut, User, Home, PlusCircle, LayoutDashboard } from "lucide-react";
 import { toast } from "sonner";
+import { NotificationsPanel } from "@/components/notifications/NotificationsPanel";
 
 interface Profile {
   id: string;
@@ -24,13 +24,11 @@ interface Profile {
 
 export const Header = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [notificationCount, setNotificationCount] = useState(0);
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
     checkUser();
-    fetchNotifications();
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && session) {
@@ -62,27 +60,6 @@ export const Header = () => {
     if (data) {
       setProfile(data);
     }
-  };
-
-  const fetchNotifications = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data: userProfile } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("user_id", user.id)
-      .single();
-
-    if (!userProfile) return;
-
-    const { count } = await supabase
-      .from("notifications")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userProfile.id)
-      .eq("is_read", false);
-
-    setNotificationCount(count || 0);
   };
 
   const handleSignOut = async () => {
@@ -132,28 +109,7 @@ export const Header = () => {
                   </>
                 )}
 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="relative">
-                      <Bell className="h-5 w-5" />
-                      {notificationCount > 0 && (
-                        <Badge
-                          variant="destructive"
-                          className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-                        >
-                          {notificationCount}
-                        </Badge>
-                      )}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-80">
-                    <DropdownMenuLabel>Notificaciones</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <div className="p-4 text-sm text-muted-foreground text-center">
-                      No hay notificaciones nuevas
-                    </div>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <NotificationsPanel />
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

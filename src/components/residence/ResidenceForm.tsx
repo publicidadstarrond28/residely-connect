@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { LocationPicker } from "./LocationPicker";
 import { RoomManagement } from "./RoomManagement";
-import { PhotoUpload } from "./PhotoUpload";
+import { AreaManagement } from "./AreaManagement";
 import { Loader2, Plus, X } from "lucide-react";
 
 export const ResidenceForm = () => {
@@ -32,7 +32,7 @@ export const ResidenceForm = () => {
     amenities: [] as string[],
   });
   const [rooms, setRooms] = useState<any[]>([]);
-  const [photos, setPhotos] = useState<Array<{ file: File; preview: string; isPrimary: boolean }>>([]);
+  const [areas, setAreas] = useState<any[]>([]);
   const [newAmenity, setNewAmenity] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -54,13 +54,19 @@ export const ResidenceForm = () => {
         throw new Error("Solo los dueños pueden crear residencias");
       }
 
-      if (rooms.length === 0) {
-        throw new Error("Debes agregar al menos una habitación");
-      }
-
-      // Validar que para tipos que no sean apartamento, el precio sea en las habitaciones
-      if (formData.residence_type !== 'apartment' && rooms.some(r => !r.price_per_month)) {
-        throw new Error("Todas las habitaciones deben tener un precio");
+      // Validación según tipo de residencia
+      if (formData.residence_type === 'apartment') {
+        if (areas.length === 0) {
+          throw new Error("Debes agregar al menos un área al apartamento");
+        }
+      } else {
+        if (rooms.length === 0) {
+          throw new Error("Debes agregar al menos una habitación");
+        }
+        // Validar que para tipos que no sean apartamento, el precio sea en las habitaciones
+        if (rooms.some(r => !r.price_per_month)) {
+          throw new Error("Todas las habitaciones deben tener un precio");
+        }
       }
 
       // Create residence
@@ -96,20 +102,71 @@ export const ResidenceForm = () => {
 
       if (error) throw error;
 
-      // Create rooms
-      const roomsToInsert = rooms.map((room) => ({
-        residence_id: residence.id,
-        room_number: room.room_number,
-        capacity: room.capacity,
-        price_per_month: parseFloat(room.price_per_month),
-        gender_preference: room.gender_preference || 'mixed',
-      }));
+      // Create rooms (for non-apartment types)
+      if (formData.residence_type !== 'apartment' && rooms.length > 0) {
+        const roomsToInsert = rooms.map((room) => ({
+          residence_id: residence.id,
+          room_number: room.room_number,
+          capacity: room.capacity,
+          price_per_month: parseFloat(room.price_per_month),
+          gender_preference: room.gender_preference || 'mixed',
+        }));
 
-      const { error: roomsError } = await supabase
-        .from("rooms")
-        .insert(roomsToInsert);
+        const { error: roomsError } = await supabase
+          .from("rooms")
+          .insert(roomsToInsert);
 
-      if (roomsError) throw roomsError;
+        if (roomsError) throw roomsError;
+      }
+
+      // Create areas (for apartments)
+      if (formData.residence_type === 'apartment' && areas.length > 0) {
+        for (const area of areas) {
+          // Insert area
+          const { data: areaRecord, error: areaError } = await supabase
+            .from('apartment_areas')
+            .insert({
+              residence_id: residence.id,
+              area_type: area.area_type,
+              area_name: area.area_name || null,
+            })
+            .select()
+            .single();
+
+          if (areaError) throw areaError;
+
+          // Upload area photos
+          if (area.photos && area.photos.length > 0 && areaRecord) {
+            const areaPhotoUploads = area.photos.map(async (photo: any) => {
+              const fileExt = photo.file.name.split('.').pop();
+              const fileName = `areas/${areaRecord.id}/${Math.random()}.${fileExt}`;
+              
+              const { error: uploadError } = await supabase.storage
+                .from('residence-photos')
+                .upload(fileName, photo.file);
+
+              if (uploadError) throw uploadError;
+
+              const { data: { publicUrl } } = supabase.storage
+                .from('residence-photos')
+                .getPublicUrl(fileName);
+
+              return {
+                area_id: areaRecord.id,
+                photo_url: publicUrl,
+                is_primary: photo.isPrimary,
+              };
+            });
+
+            const areaPhotoRecords = await Promise.all(areaPhotoUploads);
+            const { error: areaPhotosError } = await supabase
+              .from('apartment_area_photos')
+              .insert(areaPhotoRecords);
+
+            if (areaPhotosError) throw areaPhotosError;
+          }
+        }
+      }
 
       // Upload room photos for house, room, and hotel types
       if (formData.residence_type !== 'apartment') {
@@ -155,37 +212,6 @@ export const ResidenceForm = () => {
         }
       }
 
-      // Upload residence photos (only for apartments)
-      if (photos.length > 0 && formData.residence_type === 'apartment') {
-        const photoUploads = photos.map(async (photo) => {
-          const fileExt = photo.file.name.split('.').pop();
-          const fileName = `${residence.id}/${Math.random()}.${fileExt}`;
-          
-          const { error: uploadError } = await supabase.storage
-            .from('residence-photos')
-            .upload(fileName, photo.file);
-
-          if (uploadError) throw uploadError;
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('residence-photos')
-            .getPublicUrl(fileName);
-
-          return {
-            residence_id: residence.id,
-            photo_url: publicUrl,
-            is_primary: photo.isPrimary,
-          };
-        });
-
-        const photoRecords = await Promise.all(photoUploads);
-
-        const { error: photosError } = await supabase
-          .from('residence_photos')
-          .insert(photoRecords);
-
-        if (photosError) throw photosError;
-      }
 
       toast.success("¡Residencia creada exitosamente!");
       navigate("/");
@@ -318,15 +344,41 @@ export const ResidenceForm = () => {
             </div>
           </div>
 
-          {/* Details */}
+          {/* Tipo de Residencia primero */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Detalles</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Solo mostrar precio para apartamentos */}
-              {formData.residence_type === 'apartment' && (
+            <h3 className="text-lg font-semibold">Tipo de Propiedad</h3>
+            <div>
+              <Label htmlFor="type">Tipo de Residencia *</Label>
+              <Select
+                value={formData.residence_type}
+                onValueChange={(value: any) => setFormData({ ...formData, residence_type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="apartment">Apartamento</SelectItem>
+                  <SelectItem value="house">Casa por Habitación</SelectItem>
+                  <SelectItem value="room">Habitación</SelectItem>
+                  <SelectItem value="hotel">Hotel</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Datos Generales del Apartamento */}
+          {formData.residence_type === 'apartment' && (
+            <div className="space-y-4 border-t pt-6">
+              <div>
+                <h3 className="text-lg font-semibold">1. Datos Generales del Apartamento</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Define los datos principales del apartamento completo
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="price">Precio mensual (USD) *</Label>
+                  <Label htmlFor="price">Precio por Mes (USD) *</Label>
                   <Input
                     id="price"
                     type="number"
@@ -337,43 +389,20 @@ export const ResidenceForm = () => {
                     required
                   />
                 </div>
-              )}
 
-              {/* Solo mostrar capacidad para apartamentos */}
-              {formData.residence_type === 'apartment' && (
                 <div>
-                  <Label htmlFor="capacity">Capacidad *</Label>
+                  <Label htmlFor="capacity">Cantidad de Personas *</Label>
                   <Input
                     id="capacity"
                     type="number"
                     min="1"
                     value={formData.capacity}
                     onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
+                    placeholder="4"
                     required
                   />
                 </div>
-              )}
 
-              <div>
-                <Label htmlFor="type">Tipo de Residencia *</Label>
-                <Select
-                  value={formData.residence_type}
-                  onValueChange={(value: any) => setFormData({ ...formData, residence_type: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="apartment">Apartamento</SelectItem>
-                    <SelectItem value="house">Casa por Habitación</SelectItem>
-                    <SelectItem value="room">Habitación</SelectItem>
-                    <SelectItem value="hotel">Hotel</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Solo mostrar género para apartamentos */}
-              {formData.residence_type === 'apartment' && (
                 <div>
                   <Label htmlFor="gender">Preferencia de Género *</Label>
                   <Select
@@ -384,26 +413,36 @@ export const ResidenceForm = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="mixed">Sin preferencia</SelectItem>
-                      <SelectItem value="male">Solo hombres</SelectItem>
-                      <SelectItem value="female">Solo mujeres</SelectItem>
+                      <SelectItem value="mixed">Mixto</SelectItem>
+                      <SelectItem value="female">Solo Mujeres</SelectItem>
+                      <SelectItem value="male">Solo Hombres</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              )}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Rooms */}
-          <RoomManagement 
-            rooms={rooms} 
-            onChange={setRooms}
-            residenceType={formData.residence_type}
-          />
-
-          {/* Photos - Solo para apartamentos */}
+          {/* Gestión de Áreas para Apartamentos */}
           {formData.residence_type === 'apartment' && (
-            <PhotoUpload photos={photos} onChange={setPhotos} />
+            <div className="border-t pt-6">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold">2. Gestión de Áreas</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Añade las áreas específicas del apartamento con sus respectivas galerías de imágenes
+                </p>
+              </div>
+              <AreaManagement areas={areas} onChange={setAreas} />
+            </div>
+          )}
+
+          {/* Rooms - Para otros tipos */}
+          {formData.residence_type !== 'apartment' && (
+            <RoomManagement 
+              rooms={rooms} 
+              onChange={setRooms}
+              residenceType={formData.residence_type}
+            />
           )}
 
           {/* Amenities */}

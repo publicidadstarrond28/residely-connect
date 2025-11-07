@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Home, MapPin, DollarSign, MessageSquare } from "lucide-react";
+import { Home, MapPin, DollarSign, MessageSquare, Settings } from "lucide-react";
+import { ResidentPaymentDashboard } from "@/components/payment/ResidentPaymentDashboard";
+import { OwnerPaymentSettings } from "@/components/payment/OwnerPaymentSettings";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -111,156 +113,163 @@ const Profile = () => {
         </Card>
 
         {profile?.role === "resident" && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Home className="h-5 w-5" />
-                Mis Aplicaciones
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {applications.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">
-                  No has aplicado a ninguna residencia aún
-                </p>
-              ) : (
-                applications.map((app) => (
-                  <Card key={app.id}>
-                    <CardContent className="pt-6">
-                      <div className="flex gap-4">
-                        {app.residences?.residence_photos?.[0] && (
-                          <img
-                            src={app.residences.residence_photos[0].photo_url}
-                            alt={app.residences.title}
-                            className="w-24 h-24 object-cover rounded-lg"
-                          />
-                        )}
-                        <div className="flex-1 space-y-2">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <h3 className="font-semibold text-lg">
-                                {app.residences?.title}
-                              </h3>
-                              <p className="text-sm text-muted-foreground flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {app.residences?.address}, {app.residences?.city}
-                              </p>
-                            </div>
-                            {getStatusBadge(app.status)}
-                          </div>
-                          
-                          {app.rooms && (
-                            <p className="text-sm">
-                              Habitación: {app.rooms.room_number} - $
-                              {app.rooms.price_per_month}/mes
-                            </p>
+          <>
+            <ResidentPaymentDashboard userId={profile.id} />
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Home className="h-5 w-5" />
+                  Mis Aplicaciones
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {applications.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-4">
+                    No has aplicado a ninguna residencia aún
+                  </p>
+                ) : (
+                  applications.map((app) => (
+                    <Card key={app.id}>
+                      <CardContent className="pt-6">
+                        <div className="flex gap-4">
+                          {app.residences?.residence_photos?.[0] && (
+                            <img
+                              src={app.residences.residence_photos[0].photo_url}
+                              alt={app.residences.title}
+                              className="w-24 h-24 object-cover rounded-lg"
+                            />
                           )}
-
-                          <div className="flex gap-2 mt-3">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => navigate(`/residence/${app.residence_id}`)}
-                            >
-                              Ver Residencia
-                            </Button>
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <h3 className="font-semibold text-lg">
+                                  {app.residences?.title}
+                                </h3>
+                                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {app.residences?.address}, {app.residences?.city}
+                                </p>
+                              </div>
+                              {getStatusBadge(app.status)}
+                            </div>
                             
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => navigate(`/chat/${app.residence_id}`)}
-                            >
-                              <MessageSquare className="h-4 w-4 mr-1" />
-                              Chat
-                            </Button>
-
-                            {app.status === "accepted" && (
-                              <Button
-                                size="sm"
-                                onClick={() =>
-                                  navigate(
-                                    `/payment?residenceId=${app.residence_id}&roomId=${app.room_id}&applicationId=${app.id}`
-                                  )
-                                }
-                              >
-                                <DollarSign className="h-4 w-4 mr-1" />
-                                Pagar
-                              </Button>
+                            {app.rooms && (
+                              <p className="text-sm">
+                                Habitación: {app.rooms.room_number} - $
+                                {app.rooms.price_per_month}/mes
+                              </p>
                             )}
+
+                            <div className="flex gap-2 mt-3">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => navigate(`/residence/${app.residence_id}`)}
+                              >
+                                Ver Residencia
+                              </Button>
+                              
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => navigate(`/chat/${app.residence_id}`)}
+                              >
+                                <MessageSquare className="h-4 w-4 mr-1" />
+                                Chat
+                              </Button>
+
+                              {app.status === "accepted" && (
+                                <Button
+                                  size="sm"
+                                  onClick={() =>
+                                    navigate(
+                                      `/payment?residence=${app.residence_id}&room=${app.room_id}&application=${app.id}`
+                                    )
+                                  }
+                                >
+                                  <DollarSign className="h-4 w-4 mr-1" />
+                                  Pagar
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </CardContent>
-          </Card>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </>
         )}
 
         {profile?.role === "owner" && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Home className="h-5 w-5" />
-                Mis Residencias
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {residences.length === 0 ? (
-                <div className="text-center py-4">
-                  <p className="text-muted-foreground mb-4">
-                    No tienes residencias registradas
-                  </p>
-                  <Button onClick={() => navigate("/create-residence")}>
-                    Crear Residencia
-                  </Button>
-                </div>
-              ) : (
-                residences.map((residence) => (
-                  <Card key={residence.id}>
-                    <CardContent className="pt-6">
-                      <div className="flex gap-4">
-                        {residence.residence_photos?.[0] && (
-                          <img
-                            src={residence.residence_photos[0].photo_url}
-                            alt={residence.title}
-                            className="w-24 h-24 object-cover rounded-lg"
-                          />
-                        )}
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-lg">{residence.title}</h3>
-                          <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            {residence.address}, {residence.city}
-                          </p>
-                          <p className="text-sm mt-1">
-                            ${residence.price_per_month}/mes
-                          </p>
-                          <div className="flex gap-2 mt-3">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => navigate(`/residence/${residence.id}`)}
-                            >
-                              Ver Detalles
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => navigate(`/admin-panel`)}
-                            >
-                              Gestionar
-                            </Button>
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Home className="h-5 w-5" />
+                  Mis Residencias
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {residences.length === 0 ? (
+                  <div className="text-center py-4">
+                    <p className="text-muted-foreground mb-4">
+                      No tienes residencias registradas
+                    </p>
+                    <Button onClick={() => navigate("/create-residence")}>
+                      Crear Residencia
+                    </Button>
+                  </div>
+                ) : (
+                  residences.map((residence) => (
+                    <Card key={residence.id} className="mb-4">
+                      <CardContent className="pt-6">
+                        <div className="flex gap-4 mb-4">
+                          {residence.residence_photos?.[0] && (
+                            <img
+                              src={residence.residence_photos[0].photo_url}
+                              alt={residence.title}
+                              className="w-24 h-24 object-cover rounded-lg"
+                            />
+                          )}
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-lg">{residence.title}</h3>
+                            <p className="text-sm text-muted-foreground flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              {residence.address}, {residence.city}
+                            </p>
+                            <p className="text-sm mt-1">
+                              ${residence.price_per_month}/mes
+                            </p>
+                            <div className="flex gap-2 mt-3">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => navigate(`/residence/${residence.id}`)}
+                              >
+                                Ver Detalles
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => navigate(`/admin-panel`)}
+                              >
+                                Gestionar
+                              </Button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </CardContent>
-          </Card>
+                        <OwnerPaymentSettings residenceId={residence.id} />
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </>
         )}
       </div>
     </div>

@@ -5,7 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, MapPin, Users, DollarSign, MessageCircle, ArrowLeft, Send, CheckCircle, XCircle, Clock, CreditCard } from "lucide-react";
+import { Loader2, MapPin, Users, DollarSign, MessageCircle, ArrowLeft, Send, CheckCircle, XCircle, Clock, CreditCard, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { useRoomApplicationStatus } from "@/hooks/useRoomApplicationStatus";
 
@@ -58,6 +58,39 @@ const ResidenceDetails = () => {
           .single();
 
         if (error) throw error;
+
+        // Fetch room photos if residence has rooms
+        if (data.rooms && data.rooms.length > 0) {
+          const roomIds = data.rooms.map((r: any) => r.id);
+          const { data: roomPhotos } = await supabase
+            .from('room_photos')
+            .select('*')
+            .in('room_id', roomIds);
+
+          // Attach photos to each room
+          data.rooms = data.rooms.map((room: any) => ({
+            ...room,
+            photos: roomPhotos?.filter((p: any) => p.room_id === room.id) || []
+          }));
+        }
+
+        // Fetch areas with photos if residence type is apartment
+        if (data.residence_type === 'apartment') {
+          const { data: areasData } = await supabase
+            .from('residence_areas')
+            .select(`
+              *,
+              area_photos (
+                id,
+                photo_url,
+                is_primary
+              )
+            `)
+            .eq('residence_id', residenceId);
+
+          (data as any).areas = areasData || [];
+        }
+
         setResidence(data);
 
         // Check if current user is the owner
@@ -264,6 +297,42 @@ const ResidenceDetails = () => {
                   </div>
                 )}
 
+                {residence.residence_type === 'apartment' && residence.areas && residence.areas.length > 0 && (
+                  <div>
+                    <h2 className="text-xl font-semibold mb-3">Áreas del Apartamento</h2>
+                    <div className="grid grid-cols-1 gap-4">
+                      {residence.areas.map((area: any) => (
+                        <Card key={area.id}>
+                          <CardContent className="p-4 space-y-3">
+                            <div>
+                              <h3 className="font-semibold text-lg capitalize">{area.area_type}</h3>
+                              {area.area_name && (
+                                <p className="text-sm text-muted-foreground">{area.area_name}</p>
+                              )}
+                            </div>
+                            {area.area_photos && area.area_photos.length > 0 && (
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                {area.area_photos.map((photo: any) => (
+                                  <div key={photo.id} className="relative aspect-square rounded-lg overflow-hidden">
+                                    <img
+                                      src={photo.photo_url}
+                                      alt={`${area.area_type} - ${area.area_name || ''}`}
+                                      className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+                                    />
+                                    {photo.is_primary && (
+                                      <Badge className="absolute top-2 left-2 text-xs">Principal</Badge>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {residence.rooms && residence.rooms.length > 0 && (
                   <div>
                     <h2 className="text-xl font-semibold mb-3">Habitaciones</h2>
@@ -271,6 +340,22 @@ const ResidenceDetails = () => {
                       {residence.rooms.map((room: any) => (
                         <Card key={room.id}>
                           <CardContent className="p-4 space-y-3">
+                            {room.photos && room.photos.length > 0 && (
+                              <div className="grid grid-cols-2 gap-2 mb-2">
+                                {room.photos.slice(0, 4).map((photo: any) => (
+                                  <div key={photo.id} className="relative aspect-square rounded-lg overflow-hidden">
+                                    <img
+                                      src={photo.photo_url}
+                                      alt={`Habitación ${room.room_number}`}
+                                      className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+                                    />
+                                    {photo.is_primary && (
+                                      <Badge className="absolute top-1 left-1 text-xs">Principal</Badge>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                             <div className="flex justify-between items-start mb-2">
                               <h3 className="font-semibold">Habitación {room.room_number}</h3>
                               <Badge variant={room.is_available ? "default" : "secondary"}>
@@ -407,10 +492,20 @@ const ResidenceDetails = () => {
                   )}
                 </div>
 
-                <Button className="w-full" onClick={() => navigate(`/chat/${residence.id}`)}>
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Ir al Chat
-                </Button>
+                {isOwner ? (
+                  <Button 
+                    className="w-full" 
+                    onClick={() => navigate(`/edit-residence/${residence.id}`)}
+                  >
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Editar Residencia
+                  </Button>
+                ) : (
+                  <Button className="w-full" onClick={() => navigate(`/chat/${residence.id}`)}>
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Ir al Chat
+                  </Button>
+                )}
               </CardContent>
             </Card>
 

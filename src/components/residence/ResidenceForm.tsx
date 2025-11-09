@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,28 +12,69 @@ import { LocationPicker } from "./LocationPicker";
 import { RoomManagement } from "./RoomManagement";
 import { AreaManagement } from "./AreaManagement";
 import { Loader2, Plus, X } from "lucide-react";
+import { getCountries, getStatesByCountry, getCitiesByState } from "@/data/locations";
 
-export const ResidenceForm = () => {
+interface ResidenceFormProps {
+  initialData?: any;
+  isEdit?: boolean;
+}
+
+export const ResidenceForm = ({ initialData, isEdit = false }: ResidenceFormProps) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    address: "",
-    city: "",
-    state: "",
-    country: "",
-    latitude: 0,
-    longitude: 0,
-    price_per_month: "",
-    capacity: "1",
-    residence_type: "apartment" as const,
-    gender_preference: "mixed" as const,
-    amenities: [] as string[],
+    title: initialData?.title || "",
+    description: initialData?.description || "",
+    address: initialData?.address || "",
+    city: initialData?.city || "",
+    state: initialData?.state || "",
+    country: initialData?.country || "",
+    latitude: initialData?.latitude || 0,
+    longitude: initialData?.longitude || 0,
+    price_per_month: initialData?.price_per_month?.toString() || "",
+    capacity: initialData?.capacity?.toString() || "1",
+    residence_type: initialData?.residence_type || ("apartment" as const),
+    gender_preference: initialData?.gender_preference || ("mixed" as const),
+    amenities: initialData?.amenities || ([] as string[]),
   });
-  const [rooms, setRooms] = useState<any[]>([]);
-  const [areas, setAreas] = useState<any[]>([]);
+  const [rooms, setRooms] = useState<any[]>(initialData?.rooms || []);
+  const [areas, setAreas] = useState<any[]>(initialData?.residence_areas || []);
   const [newAmenity, setNewAmenity] = useState("");
+
+  // Location cascade state
+  const [countries] = useState<string[]>(getCountries());
+  const [states, setStates] = useState<string[]>([]);
+  const [cities, setCities] = useState<string[]>([]);
+
+  // Update states when country changes
+  useEffect(() => {
+    if (formData.country) {
+      const availableStates = getStatesByCountry(formData.country);
+      setStates(availableStates);
+      // Reset state and city if country changed
+      if (!availableStates.includes(formData.state)) {
+        setFormData(prev => ({ ...prev, state: "", city: "" }));
+        setCities([]);
+      }
+    } else {
+      setStates([]);
+      setCities([]);
+    }
+  }, [formData.country]);
+
+  // Update cities when state changes
+  useEffect(() => {
+    if (formData.country && formData.state) {
+      const availableCities = getCitiesByState(formData.country, formData.state);
+      setCities(availableCities);
+      // Reset city if state changed
+      if (!availableCities.includes(formData.city)) {
+        setFormData(prev => ({ ...prev, city: "" }));
+      }
+    } else {
+      setCities([]);
+    }
+  }, [formData.country, formData.state]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +92,7 @@ export const ResidenceForm = () => {
         .single();
 
       if (!profile || profile.role !== "owner") {
-        throw new Error("Solo los dueños pueden crear residencias");
+        throw new Error("Solo los dueños pueden crear/editar residencias");
       }
 
       // Validación según tipo de residencia
@@ -69,10 +110,52 @@ export const ResidenceForm = () => {
         }
       }
 
-      // Create residence
-      const { data: residence, error } = await supabase
-        .from("residences")
-        .insert({
+      let residence;
+      
+      if (isEdit && initialData) {
+        // Update residence
+        const { data: updatedResidence, error } = await supabase
+          .from("residences")
+          .update({
+            title: formData.title,
+            description: formData.description,
+            address: formData.address,
+            city: formData.city,
+            state: formData.state,
+            country: formData.country,
+            latitude: formData.latitude,
+            longitude: formData.longitude,
+            price_per_month: formData.residence_type === 'apartment' 
+              ? parseFloat(formData.price_per_month) 
+              : 0,
+            capacity: formData.residence_type === 'apartment' 
+              ? parseInt(formData.capacity) 
+              : rooms.reduce((sum, room) => sum + room.capacity, 0),
+            residence_type: formData.residence_type,
+            gender_preference: formData.residence_type === 'apartment' 
+              ? formData.gender_preference 
+              : 'mixed',
+            amenities: formData.amenities,
+          })
+          .eq("id", initialData.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        residence = updatedResidence;
+
+        // Delete existing rooms and areas to recreate them
+        if (formData.residence_type !== 'apartment') {
+          await supabase.from("rooms").delete().eq("residence_id", initialData.id);
+        }
+        if (formData.residence_type === 'apartment') {
+          await supabase.from("residence_areas").delete().eq("residence_id", initialData.id);
+        }
+      } else {
+        // Create residence
+        const { data: newResidence, error } = await supabase
+          .from("residences")
+          .insert({
           owner_id: profile.id,
           title: formData.title,
           description: formData.description,
@@ -95,12 +178,14 @@ export const ResidenceForm = () => {
           gender_preference: formData.residence_type === 'apartment' 
             ? formData.gender_preference 
             : 'mixed',
-          amenities: formData.amenities,
-        })
-        .select()
-        .single();
+            amenities: formData.amenities,
+          })
+          .select()
+          .single();
 
-      if (error) throw error;
+        if (error) throw error;
+        residence = newResidence;
+      }
 
       // Create rooms (for non-apartment types)
       if (formData.residence_type !== 'apartment' && rooms.length > 0) {
@@ -123,12 +208,12 @@ export const ResidenceForm = () => {
       if (formData.residence_type === 'apartment' && areas.length > 0) {
         for (const area of areas) {
           // Insert area
-          const { data: areaRecord, error: areaError } = await supabase
-            .from('apartment_areas')
+          const { data: areaData, error: areaError } = await supabase
+            .from("residence_areas")
             .insert({
               residence_id: residence.id,
               area_type: area.area_type,
-              area_name: area.area_name || null,
+              area_name: area.area_name,
             })
             .select()
             .single();
@@ -136,87 +221,84 @@ export const ResidenceForm = () => {
           if (areaError) throw areaError;
 
           // Upload area photos
-          if (area.photos && area.photos.length > 0 && areaRecord) {
-            const areaPhotoUploads = area.photos.map(async (photo: any) => {
+          if (area.photos && area.photos.length > 0) {
+            for (const photo of area.photos) {
               const fileExt = photo.file.name.split('.').pop();
-              const fileName = `areas/${areaRecord.id}/${Math.random()}.${fileExt}`;
-              
+              const fileName = `${Math.random()}.${fileExt}`;
+              const filePath = `${residence.id}/${areaData.id}/${fileName}`;
+
               const { error: uploadError } = await supabase.storage
                 .from('residence-photos')
-                .upload(fileName, photo.file);
+                .upload(filePath, photo.file);
 
               if (uploadError) throw uploadError;
 
               const { data: { publicUrl } } = supabase.storage
                 .from('residence-photos')
-                .getPublicUrl(fileName);
+                .getPublicUrl(filePath);
 
-              return {
-                area_id: areaRecord.id,
-                photo_url: publicUrl,
-                is_primary: photo.isPrimary,
-              };
-            });
-
-            const areaPhotoRecords = await Promise.all(areaPhotoUploads);
-            const { error: areaPhotosError } = await supabase
-              .from('apartment_area_photos')
-              .insert(areaPhotoRecords);
-
-            if (areaPhotosError) throw areaPhotosError;
-          }
-        }
-      }
-
-      // Upload room photos for house, room, and hotel types
-      if (formData.residence_type !== 'apartment') {
-        for (const room of rooms) {
-          if (room.photos && room.photos.length > 0) {
-            const roomRecord = (await supabase
-              .from('rooms')
-              .select('id')
-              .eq('residence_id', residence.id)
-              .eq('room_number', room.room_number)
-              .single()).data;
-
-            if (roomRecord) {
-              const roomPhotoUploads = room.photos.map(async (photo) => {
-                const fileExt = photo.file.name.split('.').pop();
-                const fileName = `rooms/${roomRecord.id}/${Math.random()}.${fileExt}`;
-                
-                const { error: uploadError } = await supabase.storage
-                  .from('residence-photos')
-                  .upload(fileName, photo.file);
-
-                if (uploadError) throw uploadError;
-
-                const { data: { publicUrl } } = supabase.storage
-                  .from('residence-photos')
-                  .getPublicUrl(fileName);
-
-                return {
-                  room_id: roomRecord.id,
+              const { error: photoError } = await supabase
+                .from('area_photos')
+                .insert({
+                  area_id: areaData.id,
                   photo_url: publicUrl,
                   is_primary: photo.isPrimary,
-                };
-              });
+                });
 
-              const roomPhotoRecords = await Promise.all(roomPhotoUploads);
-              const { error: roomPhotosError } = await supabase
-                .from('room_photos')
-                .insert(roomPhotoRecords as any);
-
-              if (roomPhotosError) throw roomPhotosError;
+              if (photoError) throw photoError;
             }
           }
         }
       }
 
+      // Upload room photos (for non-apartment types)
+      if (formData.residence_type !== 'apartment' && rooms.length > 0) {
+        // Get the created rooms to match with photos
+        const { data: createdRooms } = await supabase
+          .from('rooms')
+          .select('id, room_number')
+          .eq('residence_id', residence.id);
 
-      toast.success("¡Residencia creada exitosamente!");
+        if (createdRooms) {
+          for (let i = 0; i < rooms.length; i++) {
+            const room = rooms[i];
+            const createdRoom = createdRooms.find(r => r.room_number === room.room_number);
+            
+            if (createdRoom && room.photos && room.photos.length > 0) {
+              for (const photo of room.photos) {
+                const fileExt = photo.file.name.split('.').pop();
+                const fileName = `${Math.random()}.${fileExt}`;
+                const filePath = `${residence.id}/rooms/${createdRoom.id}/${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                  .from('residence-photos')
+                  .upload(filePath, photo.file);
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage
+                  .from('residence-photos')
+                  .getPublicUrl(filePath);
+
+                const { error: photoError } = await supabase
+                  .from('room_photos')
+                  .insert({
+                    room_id: createdRoom.id,
+                    photo_url: publicUrl,
+                    is_primary: photo.isPrimary,
+                  });
+
+                if (photoError) throw photoError;
+              }
+            }
+          }
+        }
+      }
+
+      toast.success(isEdit ? "¡Residencia actualizada exitosamente!" : "¡Residencia creada exitosamente!");
       navigate("/");
     } catch (error: any) {
-      toast.error(error.message || "Error al crear la residencia");
+      toast.error(error.message || (isEdit ? "Error al actualizar la residencia" : "Error al crear la residencia"));
     } finally {
       setLoading(false);
     }
@@ -239,12 +321,21 @@ export const ResidenceForm = () => {
     });
   };
 
+  // Memoize location change handler to prevent unnecessary re-renders
+  const handleLocationChange = useCallback((lat: number, lng: number) => {
+    setFormData(prev => ({
+      ...prev,
+      latitude: lat,
+      longitude: lng
+    }));
+  }, []);
+
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
-        <CardTitle>Crear Nueva Residencia</CardTitle>
+        <CardTitle>{isEdit ? "Editar Residencia" : "Crear Nueva Residencia"}</CardTitle>
         <CardDescription>
-          Completa los detalles de tu residencia para publicarla
+          {isEdit ? "Actualiza los detalles de tu residencia" : "Completa los detalles de tu residencia para publicarla"}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -280,46 +371,73 @@ export const ResidenceForm = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="address">Dirección *</Label>
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="Calle y número"
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="city">Ciudad *</Label>
-                <Input
-                  id="city"
-                  value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  placeholder="Ciudad"
-                  required
-                />
+                <Label htmlFor="country">País *</Label>
+                <Select
+                  value={formData.country}
+                  onValueChange={(value) => setFormData({ ...formData, country: value })}
+                >
+                  <SelectTrigger id="country">
+                    <SelectValue placeholder="Selecciona un país" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {countries.map((country) => (
+                      <SelectItem key={country} value={country}>
+                        {country}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
                 <Label htmlFor="state">Estado/Provincia *</Label>
-                <Input
-                  id="state"
+                <Select
                   value={formData.state}
-                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                  placeholder="Estado"
-                  required
-                />
+                  onValueChange={(value) => setFormData({ ...formData, state: value })}
+                  disabled={!formData.country}
+                >
+                  <SelectTrigger id="state">
+                    <SelectValue placeholder={formData.country ? "Selecciona un estado" : "Primero selecciona un país"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {states.map((state) => (
+                      <SelectItem key={state} value={state}>
+                        {state}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
-                <Label htmlFor="country">País *</Label>
+                <Label htmlFor="city">Ciudad *</Label>
+                <Select
+                  value={formData.city}
+                  onValueChange={(value) => setFormData({ ...formData, city: value })}
+                  disabled={!formData.state}
+                >
+                  <SelectTrigger id="city">
+                    <SelectValue placeholder={formData.state ? "Selecciona una ciudad" : "Primero selecciona un estado"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cities.map((city) => (
+                      <SelectItem key={city} value={city}>
+                        {city}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="address">Dirección Específica *</Label>
                 <Input
-                  id="country"
-                  value={formData.country}
-                  onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                  placeholder="País"
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="Calle, avenida, edificio, número"
                   required
+                  disabled={!formData.city}
                 />
               </div>
             </div>
@@ -332,9 +450,7 @@ export const ResidenceForm = () => {
               <LocationPicker
                 latitude={formData.latitude}
                 longitude={formData.longitude}
-                onLocationChange={(lat, lng) => {
-                  setFormData({ ...formData, latitude: lat, longitude: lng });
-                }}
+                onLocationChange={handleLocationChange}
               />
               {formData.latitude !== 0 && formData.longitude !== 0 && (
                 <p className="text-sm text-muted-foreground mt-2">
@@ -487,10 +603,10 @@ export const ResidenceForm = () => {
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creando...
+                  {isEdit ? "Actualizando..." : "Creando..."}
                 </>
               ) : (
-                "Crear Residencia"
+                isEdit ? "Actualizar Residencia" : "Crear Residencia"
               )}
             </Button>
             <Button type="button" variant="outline" onClick={() => navigate("/")} disabled={loading}>

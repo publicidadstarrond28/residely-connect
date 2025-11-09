@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 import { format } from "date-fns";
+import { generatePaymentReceipt } from "@/utils/pdfGenerator";
+import { toast } from "@/hooks/use-toast";
 
 interface Payment {
   id: string;
@@ -12,6 +16,8 @@ interface Payment {
   months_paid: number;
   banco_origen: string | null;
   numero_referencia: string | null;
+  telefono_origen: string | null;
+  cedula: string | null;
   fecha_pago: string | null;
   moneda: string | null;
   monto_total: number | null;
@@ -20,7 +26,15 @@ interface Payment {
   rejection_reason: string | null;
   residences: {
     title: string;
-  };
+    address: string;
+  } | null;
+  profiles: {
+    full_name: string;
+    email: string;
+  } | null;
+  rooms: {
+    room_number: string;
+  } | null;
 }
 
 interface PaymentHistoryProps {
@@ -61,7 +75,9 @@ export const PaymentHistory = ({ userId }: PaymentHistoryProps) => {
         .from("payments")
         .select(`
           *,
-          residences (title)
+          residences (title, address),
+          profiles (full_name, email),
+          rooms (room_number)
         `)
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
@@ -88,6 +104,46 @@ export const PaymentHistory = ({ userId }: PaymentHistoryProps) => {
     }
   };
 
+  const handleDownloadReceipt = async (payment: Payment) => {
+    try {
+      toast({
+        title: "Generando recibo...",
+        description: "Tu recibo PDF se descargará en un momento",
+      });
+
+      await generatePaymentReceipt({
+        payment_id: payment.id,
+        user_name: payment.profiles?.full_name || "Usuario",
+        user_email: payment.profiles?.email || "",
+        residence_title: payment.residences?.title || "Residencia",
+        residence_address: payment.residences?.address || "",
+        room_number: payment.rooms?.room_number || undefined,
+        payment_method: payment.payment_method,
+        amount: payment.monto_total || 0,
+        currency: payment.moneda || "USD",
+        months_paid: payment.months_paid,
+        payment_date: payment.fecha_pago || payment.created_at,
+        reference_number: payment.numero_referencia || undefined,
+        bank: payment.banco_origen || undefined,
+        phone: payment.telefono_origen || undefined,
+        cedula: payment.cedula || undefined,
+        status: payment.status,
+      });
+
+      toast({
+        title: "Recibo descargado",
+        description: "El recibo ha sido descargado exitosamente",
+      });
+    } catch (error) {
+      console.error("Error downloading receipt:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo generar el recibo",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return <div className="text-center p-8">Cargando historial de pagos...</div>;
   }
@@ -110,13 +166,23 @@ export const PaymentHistory = ({ userId }: PaymentHistoryProps) => {
         <Card key={payment.id}>
           <CardHeader>
             <div className="flex justify-between items-start">
-              <div>
-                <CardTitle>{payment.residences.title}</CardTitle>
+              <div className="flex-1">
+                <CardTitle>{payment.residences?.title || "Residencia"}</CardTitle>
                 <CardDescription>
                   {payment.months_paid} {payment.months_paid === 1 ? "mes" : "meses"}
                 </CardDescription>
               </div>
-              {getStatusBadge(payment.status)}
+              <div className="flex items-center gap-2">
+                {getStatusBadge(payment.status)}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleDownloadReceipt(payment)}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  PDF
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>

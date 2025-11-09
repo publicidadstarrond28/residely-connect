@@ -3,7 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { OwnerPaymentPanel } from "@/components/payment/OwnerPaymentPanel";
 import { PaymentsDashboard } from "@/components/payment/PaymentsDashboard";
+import { PaymentStatistics } from "@/components/payment/PaymentStatistics";
 import { supabase } from "@/integrations/supabase/client";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const OwnerPayments = () => {
   const navigate = useNavigate();
@@ -50,10 +52,21 @@ const OwnerPayments = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="container mx-auto px-4 py-8 space-y-6">
-        <h1 className="text-3xl font-bold">Dashboard de Pagos</h1>
-        <PaymentsDashboard ownerId={profile.id} />
-        <OwnerPaymentPanel ownerId={profile.id} />
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-6">Gestión de Pagos</h1>
+        <Tabs defaultValue="payments" className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="payments">Pagos</TabsTrigger>
+            <TabsTrigger value="statistics">Estadísticas</TabsTrigger>
+          </TabsList>
+          <TabsContent value="payments" className="mt-6 space-y-6">
+            <PaymentsDashboard ownerId={profile.id} />
+            <OwnerPaymentPanel ownerId={profile.id} />
+          </TabsContent>
+          <TabsContent value="statistics" className="mt-6">
+            <PaymentStatistics ownerId={profile.id} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

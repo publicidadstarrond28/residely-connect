@@ -3,6 +3,43 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Bell } from "lucide-react";
 
+// Solicitar permiso para notificaciones push
+const requestNotificationPermission = async () => {
+  if (!("Notification" in window)) {
+    console.log("Este navegador no soporta notificaciones");
+    return false;
+  }
+
+  if (Notification.permission === "granted") {
+    return true;
+  }
+
+  if (Notification.permission !== "denied") {
+    const permission = await Notification.requestPermission();
+    return permission === "granted";
+  }
+
+  return false;
+};
+
+// Mostrar notificación push del navegador
+const showBrowserNotification = (title: string, message: string, type: string) => {
+  if (Notification.permission === "granted") {
+    const notification = new Notification(title, {
+      body: message,
+      icon: "/favicon.ico",
+      badge: "/favicon.ico",
+      tag: `payment-${type}`,
+      requireInteraction: type === "payment_overdue" || type === "payment_rejected",
+    });
+
+    notification.onclick = () => {
+      window.focus();
+      notification.close();
+    };
+  }
+};
+
 interface Notification {
   id: string;
   user_id: string;
@@ -19,6 +56,9 @@ export const useRealtimeNotifications = (userId: string | null) => {
 
   useEffect(() => {
     if (!userId) return;
+
+    // Solicitar permiso para notificaciones push al cargar
+    requestNotificationPermission();
 
     // Cargar notificaciones iniciales
     const fetchNotifications = async () => {
@@ -61,6 +101,7 @@ export const useRealtimeNotifications = (userId: string | null) => {
               description: newNotification.message,
               duration: 5000,
             });
+            showBrowserNotification("✅ " + newNotification.title, newNotification.message, newNotification.type);
           } else if (newNotification.type === "payment_rejected") {
             toast({
               title: "❌ " + newNotification.title,
@@ -68,6 +109,14 @@ export const useRealtimeNotifications = (userId: string | null) => {
               variant: "destructive",
               duration: 5000,
             });
+            showBrowserNotification("❌ " + newNotification.title, newNotification.message, newNotification.type);
+          } else if (newNotification.type === "payment_reminder" || newNotification.type === "payment_overdue") {
+            toast({
+              title: newNotification.title,
+              description: newNotification.message,
+              duration: 4000,
+            });
+            showBrowserNotification(newNotification.title, newNotification.message, newNotification.type);
           } else {
             toast({
               title: newNotification.title,

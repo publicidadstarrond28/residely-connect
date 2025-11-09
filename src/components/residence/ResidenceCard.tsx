@@ -3,6 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, Users, Star, DollarSign, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
+import { cn } from "@/lib/utils";
 
 interface ResidenceCardProps {
   residence: {
@@ -24,6 +26,10 @@ interface ResidenceCardProps {
 
 export const ResidenceCard = ({ residence }: ResidenceCardProps) => {
   const navigate = useNavigate();
+  const { elementRef, isVisible } = useIntersectionObserver({
+    threshold: 0.1,
+    rootMargin: "50px",
+  });
 
   const averageRating =
     residence.ratings && residence.ratings.length > 0
@@ -46,7 +52,15 @@ export const ResidenceCard = ({ residence }: ResidenceCardProps) => {
   };
 
   return (
-    <Card className="overflow-hidden hover:shadow-[var(--shadow-card)] transition-all duration-300 group cursor-pointer">
+    <Card 
+      ref={elementRef}
+      className={cn(
+        "overflow-hidden hover:shadow-[var(--shadow-card)] transition-all duration-500 group cursor-pointer",
+        isVisible 
+          ? "opacity-100 translate-y-0" 
+          : "opacity-0 translate-y-8"
+      )}
+    >
       <div
         className="relative h-48 overflow-hidden"
         onClick={() => navigate(`/residence/${residence.id}`)}

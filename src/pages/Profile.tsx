@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Home, MapPin, DollarSign, MessageSquare, Settings } from "lucide-react";
 import { ResidentPaymentDashboard } from "@/components/payment/ResidentPaymentDashboard";
-import { OwnerPaymentSettings } from "@/components/payment/OwnerPaymentSettings";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -262,7 +261,6 @@ const Profile = () => {
                             </div>
                           </div>
                         </div>
-                        <OwnerPaymentSettings residenceId={residence.id} />
                       </CardContent>
                     </Card>
                   ))

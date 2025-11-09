@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import CreateResidence from "./pages/CreateResidence";
+import EditResidence from "./pages/EditResidence";
 import ResidenceChat from "./pages/ResidenceChat";
 import ResidenceDetails from "./pages/ResidenceDetails";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/" element={<Home />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/create-residence" element={<CreateResidence />} />
+          <Route path="/edit-residence/:residenceId" element={<EditResidence />} />
           <Route path="/residence/:residenceId" element={<ResidenceDetails />} />
           <Route path="/chat/:residenceId" element={<ResidenceChat />} />
           <Route path="/admin" element={<AdminDashboard />} />

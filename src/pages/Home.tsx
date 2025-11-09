@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { ResidenceCard } from "@/components/residence/ResidenceCard";
+import { ResidenceCardSkeleton } from "@/components/residence/ResidenceCardSkeleton";
 import { ResidenceFiltersNav, FilterValues } from "@/components/residence/ResidenceFiltersNav";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
 import heroImage from "@/assets/residence-hero.jpg";
 
 interface Residence {
@@ -142,8 +142,10 @@ const Home = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         {loading ? (
-          <div className="flex items-center justify-center min-h-[400px]">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <ResidenceCardSkeleton key={index} />
+            ))}
           </div>
         ) : filteredResidences.length === 0 ? (
           <div className="text-center py-12">
@@ -153,8 +155,15 @@ const Home = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredResidences.map((residence) => (
-              <ResidenceCard key={residence.id} residence={residence} />
+            {filteredResidences.map((residence, index) => (
+              <div
+                key={residence.id}
+                style={{
+                  animationDelay: `${index * 50}ms`,
+                }}
+              >
+                <ResidenceCard residence={residence} />
+              </div>
             ))}
           </div>
         )}

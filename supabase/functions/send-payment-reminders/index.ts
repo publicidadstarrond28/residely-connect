@@ -66,12 +66,12 @@ Deno.serve(async (req) => {
       const dueDate = new Date(app.next_payment_due)
       const daysUntilDue = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
       
-      const reminderDays = app.payment_reminders[0]?.days_before || 7
+      const reminderDays = Array.isArray(app.payment_reminders) ? app.payment_reminders[0]?.days_before || 7 : 7
 
       console.log(`Application ${app.id}: ${daysUntilDue} days until due, reminder set for ${reminderDays} days`)
 
-      const residenceTitle = Array.isArray(app.residences) ? app.residences[0]?.title : app.residences?.title
-      const roomNumber = Array.isArray(app.rooms) ? app.rooms[0]?.room_number : app.rooms?.room_number
+      const residenceTitle = Array.isArray(app.residences) ? app.residences[0]?.title : (app.residences as any)?.title || 'tu residencia'
+      const roomNumber = Array.isArray(app.rooms) ? app.rooms[0]?.room_number : (app.rooms as any)?.room_number
 
       // Send reminder if we're at the exact day threshold
       if (daysUntilDue === reminderDays) {

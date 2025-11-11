@@ -43,8 +43,7 @@ const EditResidence = () => {
               id,
               room_number,
               capacity,
-              price_per_month,
-              gender_preference
+              price_per_month
             ),
             residence_areas (
               id,

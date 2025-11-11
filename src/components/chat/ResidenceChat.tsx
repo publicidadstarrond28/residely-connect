@@ -74,7 +74,6 @@ export const ResidenceChat = ({ conversationId, currentProfileId, otherUserName,
         content: content.trim(),
         sender_id: currentProfileId,
         conversation_id: conversationId,
-        residence_id: null,
       };
 
       if (fileData) {

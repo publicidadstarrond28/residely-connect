@@ -14,7 +14,7 @@ export type Database = {
   }
   public: {
     Tables: {
-      area_photos: {
+      apartment_area_photos: {
         Row: {
           area_id: string
           created_at: string
@@ -38,10 +38,45 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "area_photos_area_id_fkey"
+            foreignKeyName: "apartment_area_photos_area_id_fkey"
             columns: ["area_id"]
             isOneToOne: false
-            referencedRelation: "residence_areas"
+            referencedRelation: "apartment_areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      apartment_areas: {
+        Row: {
+          area_name: string | null
+          area_type: string
+          created_at: string
+          id: string
+          residence_id: string
+          updated_at: string
+        }
+        Insert: {
+          area_name?: string | null
+          area_type: string
+          created_at?: string
+          id?: string
+          residence_id: string
+          updated_at?: string
+        }
+        Update: {
+          area_name?: string | null
+          area_type?: string
+          created_at?: string
+          id?: string
+          residence_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "apartment_areas_residence_id_fkey"
+            columns: ["residence_id"]
+            isOneToOne: false
+            referencedRelation: "residences"
             referencedColumns: ["id"]
           },
         ]
@@ -125,6 +160,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       notifications: {
@@ -163,39 +205,11 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      payment_reminders: {
-        Row: {
-          application_id: string
-          created_at: string
-          days_before: number
-          id: string
-          is_enabled: boolean
-          updated_at: string
-        }
-        Insert: {
-          application_id: string
-          created_at?: string
-          days_before?: number
-          id?: string
-          is_enabled?: boolean
-          updated_at?: string
-        }
-        Update: {
-          application_id?: string
-          created_at?: string
-          days_before?: number
-          id?: string
-          is_enabled?: boolean
-          updated_at?: string
-        }
-        Relationships: [
           {
-            foreignKeyName: "payment_reminders_application_id_fkey"
-            columns: ["application_id"]
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "residence_applications"
+            referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -283,6 +297,13 @@ export type Database = {
             columns: ["confirmed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_confirmed_by_fkey"
+            columns: ["confirmed_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -377,6 +398,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ratings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       residence_applications: {
@@ -385,7 +413,6 @@ export type Database = {
           created_at: string
           id: string
           message: string | null
-          next_payment_due: string | null
           rejection_count: number
           residence_id: string
           room_id: string | null
@@ -397,7 +424,6 @@ export type Database = {
           created_at?: string
           id?: string
           message?: string | null
-          next_payment_due?: string | null
           rejection_count?: number
           residence_id: string
           room_id?: string | null
@@ -409,7 +435,6 @@ export type Database = {
           created_at?: string
           id?: string
           message?: string | null
-          next_payment_due?: string | null
           rejection_count?: number
           residence_id?: string
           room_id?: string | null
@@ -422,6 +447,13 @@ export type Database = {
             columns: ["applicant_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "residence_applications_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -440,36 +472,54 @@ export type Database = {
           },
         ]
       }
-      residence_areas: {
+      residence_payment_config: {
         Row: {
-          area_name: string | null
-          area_type: string
+          banco_destino: string | null
+          cedula_titular: string | null
           created_at: string
+          efectivo_enabled: boolean
           id: string
+          nombre_titular: string | null
+          pago_movil_enabled: boolean
+          precio_bs: number | null
+          precio_usd: number | null
           residence_id: string
+          telefono_destino: string | null
           updated_at: string
         }
         Insert: {
-          area_name?: string | null
-          area_type: string
+          banco_destino?: string | null
+          cedula_titular?: string | null
           created_at?: string
+          efectivo_enabled?: boolean
           id?: string
+          nombre_titular?: string | null
+          pago_movil_enabled?: boolean
+          precio_bs?: number | null
+          precio_usd?: number | null
           residence_id: string
+          telefono_destino?: string | null
           updated_at?: string
         }
         Update: {
-          area_name?: string | null
-          area_type?: string
+          banco_destino?: string | null
+          cedula_titular?: string | null
           created_at?: string
+          efectivo_enabled?: boolean
           id?: string
+          nombre_titular?: string | null
+          pago_movil_enabled?: boolean
+          precio_bs?: number | null
+          precio_usd?: number | null
           residence_id?: string
+          telefono_destino?: string | null
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "residence_areas_residence_id_fkey"
+            foreignKeyName: "residence_payment_config_residence_id_fkey"
             columns: ["residence_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "residences"
             referencedColumns: ["id"]
           },
@@ -579,6 +629,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "residences_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       room_photos: {
@@ -618,6 +675,7 @@ export type Database = {
           capacity: number
           created_at: string
           current_occupants: number
+          gender_preference: string | null
           id: string
           is_available: boolean
           price_per_month: number
@@ -629,6 +687,7 @@ export type Database = {
           capacity?: number
           created_at?: string
           current_occupants?: number
+          gender_preference?: string | null
           id?: string
           is_available?: boolean
           price_per_month: number
@@ -640,6 +699,7 @@ export type Database = {
           capacity?: number
           created_at?: string
           current_occupants?: number
+          gender_preference?: string | null
           id?: string
           is_available?: boolean
           price_per_month?: number
@@ -659,7 +719,36 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          full_name: string | null
+          id: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
@@ -670,7 +759,7 @@ export type Database = {
       payment_status: "pending" | "confirmed" | "rejected"
       residence_gender: "male" | "female" | "mixed"
       residence_status: "available" | "occupied"
-      residence_type: "residence" | "hotel" | "apartment" | "room" | "studio"
+      residence_type: "apartment" | "house" | "room" | "hotel"
       user_role: "resident" | "owner"
     }
     CompositeTypes: {
@@ -804,7 +893,7 @@ export const Constants = {
       payment_status: ["pending", "confirmed", "rejected"],
       residence_gender: ["male", "female", "mixed"],
       residence_status: ["available", "occupied"],
-      residence_type: ["residence", "hotel", "apartment", "room", "studio"],
+      residence_type: ["apartment", "house", "room", "hotel"],
       user_role: ["resident", "owner"],
     },
   },

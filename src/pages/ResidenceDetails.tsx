@@ -11,6 +11,7 @@ import { useRoomApplicationStatus } from "@/hooks/useRoomApplicationStatus";
 import { PhotoGalleryModal } from "@/components/residence/PhotoGalleryModal";
 import { RatingForm } from "@/components/residence/RatingForm";
 import { RatingsList } from "@/components/residence/RatingsList";
+import { ResidenceLocationModal } from "@/components/residence/ResidenceLocationModal";
 
 const ResidenceDetails = () => {
   const { residenceId } = useParams();
@@ -26,6 +27,7 @@ const ResidenceDetails = () => {
   const [canRate, setCanRate] = useState(false);
   const [hasRated, setHasRated] = useState(false);
   const [ratingsData, setRatingsData] = useState<any[]>([]);
+  const [locationModalOpen, setLocationModalOpen] = useState(false);
   
   const { applicationStatus } = useRoomApplicationStatus(residenceId, currentProfileId);
 
@@ -85,11 +87,11 @@ const ResidenceDetails = () => {
 
         // Fetch areas with photos if residence type is apartment
         if (data.residence_type === 'apartment') {
-          const { data: areasData } = await supabase
-            .from('residence_areas')
+          const { data: areasData } = await (supabase as any)
+            .from('apartment_areas')
             .select(`
               *,
-              area_photos (
+              apartment_area_photos (
                 id,
                 photo_url,
                 is_primary
@@ -99,9 +101,8 @@ const ResidenceDetails = () => {
 
           (data as any).areas = areasData || [];
         }
-
+        console.log(data);
         setResidence(data);
-
         // Check if current user is the owner
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
@@ -190,7 +191,7 @@ const ResidenceDetails = () => {
     mixed: "Sin preferencia",
   };
 
-  const primaryPhoto = residence.residence_photos?.find((p: any) => p.is_primary)?.photo_url;
+  const primaryPhoto = residence.rooms[0].photos?.find((p: any) => p.is_primary)?.photo_url;
   const imageUrl = primaryPhoto || "/placeholder.svg";
 
   const averageRating =
@@ -369,14 +370,15 @@ const ResidenceDetails = () => {
             <Card>
               <div 
                 className="relative h-96 overflow-hidden rounded-t-lg cursor-pointer group"
-                onClick={() => {
-                  const allPhotos = residence.residence_photos?.map((p: any) => ({
+                /*onClick={() => {
+                  const allPhotos = residence.rooms?.map((p: any) => ({
                     id: p.id,
-                    photo_url: p.photo_url,
+                    photo_url: p.photos[0]?.photo_url,
                     caption: 'Foto de la residencia'
                   })) || [];
                   openGallery(allPhotos, 0);
-                }}
+                  {console.log(residence)}
+                }}*/
               >
                 <img
                   src={imageUrl}
@@ -384,9 +386,9 @@ const ResidenceDetails = () => {
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
-                  <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-lg font-semibold">
+                  {/*<span className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-lg font-semibold">
                     Ver galería ({residence.residence_photos?.length || 1} fotos)
-                  </span>
+                  </span>*/}
                 </div>
                 {residence.status === "occupied" && (
                   <div className="absolute top-4 right-4">
@@ -418,6 +420,15 @@ const ResidenceDetails = () => {
                   <div>
                     <h2 className="text-xl font-semibold mb-2">Descripción</h2>
                     <p className="text-muted-foreground">{residence.description}</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setLocationModalOpen(true)}
+                      className="mt-3"
+                    >
+                      <MapPin className="h-4 w-4 mr-2" />
+                      Ver ubicación en el mapa
+                    </Button>
                   </div>
                 )}
 
@@ -446,15 +457,15 @@ const ResidenceDetails = () => {
                               {area.area_name && (
                                 <p className="text-sm text-muted-foreground">{area.area_name}</p>
                               )}
-                            </div>
-                            {area.area_photos && area.area_photos.length > 0 && (
+                             </div>
+                             {area.apartment_area_photos && area.apartment_area_photos.length > 0 && (
                               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                                {area.area_photos.map((photo: any, photoIndex: number) => (
+                                {area.apartment_area_photos.map((photo: any, photoIndex: number) => (
                                   <div 
                                     key={photo.id} 
                                     className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group"
                                     onClick={() => {
-                                      const areaPhotos = area.area_photos.map((p: any) => ({
+                                      const areaPhotos = area.apartment_area_photos.map((p: any) => ({
                                         id: p.id,
                                         photo_url: p.photo_url,
                                         caption: `${area.area_type}${area.area_name ? ` - ${area.area_name}` : ''}`
@@ -799,6 +810,14 @@ const ResidenceDetails = () => {
         isOpen={galleryOpen}
         onClose={() => setGalleryOpen(false)}
         initialIndex={galleryInitialIndex}
+      />
+
+      <ResidenceLocationModal
+        open={locationModalOpen}
+        onOpenChange={setLocationModalOpen}
+        residenceName={residence.title}
+        latitude={Number(residence.latitude)}
+        longitude={Number(residence.longitude)}
       />
     </div>
   );

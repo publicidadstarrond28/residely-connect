@@ -48,6 +48,7 @@ const Home = () => {
       .select(`
         *,
         photos:residence_photos(*),
+        rooms(*),
         ratings(rating)
       `)
       .order("created_at", { ascending: false });
@@ -55,6 +56,7 @@ const Home = () => {
     if (error) {
       console.error("Error fetching residences:", error);
     } else {
+      console.log(data)
       setResidences(data || []);
       setFilteredResidences(data || []);
     }

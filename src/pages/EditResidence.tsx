@@ -35,7 +35,7 @@ const EditResidence = () => {
         }
 
         // Load residence data
-        const { data: residence, error } = await supabase
+        const { data: residence, error } = await (supabase as any)
           .from("residences")
           .select(`
             *,
@@ -45,11 +45,11 @@ const EditResidence = () => {
               capacity,
               price_per_month
             ),
-            residence_areas (
+            apartment_areas (
               id,
               area_type,
               area_name,
-              area_photos (
+              apartment_area_photos (
                 id,
                 photo_url,
                 is_primary

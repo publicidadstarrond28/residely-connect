@@ -33,9 +33,22 @@ interface OwnerPaymentSettingsProps {
   residenceId: string;
 }
 
+type PaymentConfig = {
+  id: string;
+  residence_id: string;
+  pago_movil_enabled: boolean;
+  efectivo_enabled: boolean;
+  banco_destino: string | null;
+  telefono_destino: string | null;
+  cedula_titular: string | null;
+  nombre_titular: string | null;
+  precio_bs: number | null;
+  precio_usd: number | null;
+};
+
 export const OwnerPaymentSettings = ({ residenceId }: OwnerPaymentSettingsProps) => {
   const [loading, setLoading] = useState(false);
-  const [config, setConfig] = useState<any>(null);
+  const [config, setConfig] = useState<PaymentConfig | null>(null);
 
   const form = useForm({
     resolver: zodResolver(schema),
@@ -58,7 +71,7 @@ export const OwnerPaymentSettings = ({ residenceId }: OwnerPaymentSettingsProps)
   const fetchConfig = async () => {
     try {
       const { data, error } = await supabase
-        .from("residence_payment_config")
+        .from("residence_payment_config" as any)
         .select("*")
         .eq("residence_id", residenceId)
         .maybeSingle();
@@ -66,16 +79,16 @@ export const OwnerPaymentSettings = ({ residenceId }: OwnerPaymentSettingsProps)
       if (error) throw error;
       
       if (data) {
-        setConfig(data);
+        setConfig(data as unknown as PaymentConfig);
         form.reset({
-          pago_movil_enabled: data.pago_movil_enabled,
-          efectivo_enabled: data.efectivo_enabled,
-          banco_destino: data.banco_destino || "",
-          telefono_destino: data.telefono_destino || "",
-          cedula_titular: data.cedula_titular || "",
-          nombre_titular: data.nombre_titular || "",
-          precio_bs: data.precio_bs?.toString() || "",
-          precio_usd: data.precio_usd?.toString() || "",
+          pago_movil_enabled: (data as any).pago_movil_enabled,
+          efectivo_enabled: (data as any).efectivo_enabled,
+          banco_destino: (data as any).banco_destino || "",
+          telefono_destino: (data as any).telefono_destino || "",
+          cedula_titular: (data as any).cedula_titular || "",
+          nombre_titular: (data as any).nombre_titular || "",
+          precio_bs: (data as any).precio_bs?.toString() || "",
+          precio_usd: (data as any).precio_usd?.toString() || "",
         });
       }
     } catch (error) {
@@ -100,13 +113,13 @@ export const OwnerPaymentSettings = ({ residenceId }: OwnerPaymentSettingsProps)
 
       if (config) {
         const { error } = await supabase
-          .from("residence_payment_config")
+          .from("residence_payment_config" as any)
           .update(payload)
           .eq("id", config.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from("residence_payment_config")
+          .from("residence_payment_config" as any)
           .insert([payload]);
         if (error) throw error;
       }

@@ -12,7 +12,7 @@ import { LocationPicker } from "./LocationPicker";
 import { RoomManagement } from "./RoomManagement";
 import { AreaManagement } from "./AreaManagement";
 import { Loader2, Plus, X } from "lucide-react";
-import { getCountries, getStatesByCountry, getCitiesByState } from "@/data/locations";
+import { getEstados, getMunicipiosByEstado, getParroquiasByMunicipio } from "@/data/locations";
 
 interface ResidenceFormProps {
   initialData?: any;
@@ -26,9 +26,10 @@ export const ResidenceForm = ({ initialData, isEdit = false }: ResidenceFormProp
     title: initialData?.title || "",
     description: initialData?.description || "",
     address: initialData?.address || "",
-    city: initialData?.city || "",
-    state: initialData?.state || "",
-    country: initialData?.country || "",
+    parroquia: initialData?.city || "", // Parroquia mapped to city field
+    municipio: "", // Will be set from initial data
+    estado: initialData?.state || "",
+    country: initialData?.country || "Venezuela",
     latitude: initialData?.latitude || 0,
     longitude: initialData?.longitude || 0,
     price_per_month: initialData?.price_per_month?.toString() || "",
@@ -38,43 +39,43 @@ export const ResidenceForm = ({ initialData, isEdit = false }: ResidenceFormProp
     amenities: initialData?.amenities || ([] as string[]),
   });
   const [rooms, setRooms] = useState<any[]>(initialData?.rooms || []);
-  const [areas, setAreas] = useState<any[]>(initialData?.residence_areas || []);
+  const [areas, setAreas] = useState<any[]>(initialData?.apartment_areas || []);
   const [newAmenity, setNewAmenity] = useState("");
 
   // Location cascade state
-  const [countries] = useState<string[]>(getCountries());
-  const [states, setStates] = useState<string[]>([]);
-  const [cities, setCities] = useState<string[]>([]);
+  const [estados] = useState<string[]>(getEstados());
+  const [municipios, setMunicipios] = useState<string[]>([]);
+  const [parroquias, setParroquias] = useState<string[]>([]);
 
-  // Update states when country changes
+  // Update municipios when estado changes
   useEffect(() => {
-    if (formData.country) {
-      const availableStates = getStatesByCountry(formData.country);
-      setStates(availableStates);
-      // Reset state and city if country changed
-      if (!availableStates.includes(formData.state)) {
-        setFormData(prev => ({ ...prev, state: "", city: "" }));
-        setCities([]);
+    if (formData.estado) {
+      const availableMunicipios = getMunicipiosByEstado(formData.estado);
+      setMunicipios(availableMunicipios);
+      // Reset municipio and parroquia if estado changed
+      if (!availableMunicipios.includes(formData.municipio)) {
+        setFormData(prev => ({ ...prev, municipio: "", parroquia: "" }));
+        setParroquias([]);
       }
     } else {
-      setStates([]);
-      setCities([]);
+      setMunicipios([]);
+      setParroquias([]);
     }
-  }, [formData.country]);
+  }, [formData.estado]);
 
-  // Update cities when state changes
+  // Update parroquias when municipio changes
   useEffect(() => {
-    if (formData.country && formData.state) {
-      const availableCities = getCitiesByState(formData.country, formData.state);
-      setCities(availableCities);
-      // Reset city if state changed
-      if (!availableCities.includes(formData.city)) {
-        setFormData(prev => ({ ...prev, city: "" }));
+    if (formData.estado && formData.municipio) {
+      const availableParroquias = getParroquiasByMunicipio(formData.estado, formData.municipio);
+      setParroquias(availableParroquias);
+      // Reset parroquia if municipio changed
+      if (!availableParroquias.includes(formData.parroquia)) {
+        setFormData(prev => ({ ...prev, parroquia: "" }));
       }
     } else {
-      setCities([]);
+      setParroquias([]);
     }
-  }, [formData.country, formData.state]);
+  }, [formData.estado, formData.municipio]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,8 +121,8 @@ export const ResidenceForm = ({ initialData, isEdit = false }: ResidenceFormProp
             title: formData.title,
             description: formData.description,
             address: formData.address,
-            city: formData.city,
-            state: formData.state,
+            city: formData.parroquia, // Store parroquia as city
+            state: `${formData.municipio}, ${formData.estado}`, // Store "Municipio, Estado"
             country: formData.country,
             latitude: formData.latitude,
             longitude: formData.longitude,
@@ -149,7 +150,7 @@ export const ResidenceForm = ({ initialData, isEdit = false }: ResidenceFormProp
           await supabase.from("rooms").delete().eq("residence_id", initialData.id);
         }
         if (formData.residence_type === 'apartment') {
-          await supabase.from("residence_areas").delete().eq("residence_id", initialData.id);
+          await (supabase as any).from("apartment_areas").delete().eq("residence_id", initialData.id);
         }
       } else {
         // Create residence
@@ -160,8 +161,8 @@ export const ResidenceForm = ({ initialData, isEdit = false }: ResidenceFormProp
           title: formData.title,
           description: formData.description,
           address: formData.address,
-          city: formData.city,
-          state: formData.state,
+          city: formData.parroquia, // Store parroquia as city
+          state: `${formData.municipio}, ${formData.estado}`, // Store "Municipio, Estado"
           country: formData.country,
           latitude: formData.latitude,
           longitude: formData.longitude,
@@ -208,8 +209,8 @@ export const ResidenceForm = ({ initialData, isEdit = false }: ResidenceFormProp
       if (formData.residence_type === 'apartment' && areas.length > 0) {
         for (const area of areas) {
           // Insert area
-          const { data: areaData, error: areaError } = await supabase
-            .from("residence_areas")
+          const { data: areaData, error: areaError } = await (supabase as any)
+            .from("apartment_areas")
             .insert({
               residence_id: residence.id,
               area_type: area.area_type,
@@ -237,8 +238,8 @@ export const ResidenceForm = ({ initialData, isEdit = false }: ResidenceFormProp
                 .from('residence-photos')
                 .getPublicUrl(filePath);
 
-              const { error: photoError } = await supabase
-                .from('area_photos')
+              const { error: photoError } = await (supabase as any)
+                .from('apartment_area_photos')
                 .insert({
                   area_id: areaData.id,
                   photo_url: publicUrl,
@@ -371,18 +372,18 @@ export const ResidenceForm = ({ initialData, isEdit = false }: ResidenceFormProp
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="country">País *</Label>
+                <Label htmlFor="estado">Estado *</Label>
                 <Select
-                  value={formData.country}
-                  onValueChange={(value) => setFormData({ ...formData, country: value })}
+                  value={formData.estado}
+                  onValueChange={(value) => setFormData({ ...formData, estado: value, municipio: "", parroquia: "" })}
                 >
-                  <SelectTrigger id="country">
-                    <SelectValue placeholder="Selecciona un país" />
+                  <SelectTrigger id="estado">
+                    <SelectValue placeholder="Selecciona un estado" />
                   </SelectTrigger>
                   <SelectContent>
-                    {countries.map((country) => (
-                      <SelectItem key={country} value={country}>
-                        {country}
+                    {estados.map((estado) => (
+                      <SelectItem key={estado} value={estado}>
+                        {estado}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -390,19 +391,19 @@ export const ResidenceForm = ({ initialData, isEdit = false }: ResidenceFormProp
               </div>
 
               <div>
-                <Label htmlFor="state">Estado/Provincia *</Label>
+                <Label htmlFor="municipio">Municipio *</Label>
                 <Select
-                  value={formData.state}
-                  onValueChange={(value) => setFormData({ ...formData, state: value })}
-                  disabled={!formData.country}
+                  value={formData.municipio}
+                  onValueChange={(value) => setFormData({ ...formData, municipio: value, parroquia: "" })}
+                  disabled={!formData.estado}
                 >
-                  <SelectTrigger id="state">
-                    <SelectValue placeholder={formData.country ? "Selecciona un estado" : "Primero selecciona un país"} />
+                  <SelectTrigger id="municipio">
+                    <SelectValue placeholder={formData.estado ? "Selecciona un municipio" : "Primero selecciona un estado"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {states.map((state) => (
-                      <SelectItem key={state} value={state}>
-                        {state}
+                    {municipios.map((municipio) => (
+                      <SelectItem key={municipio} value={municipio}>
+                        {municipio}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -410,19 +411,19 @@ export const ResidenceForm = ({ initialData, isEdit = false }: ResidenceFormProp
               </div>
 
               <div>
-                <Label htmlFor="city">Ciudad *</Label>
+                <Label htmlFor="parroquia">Parroquia *</Label>
                 <Select
-                  value={formData.city}
-                  onValueChange={(value) => setFormData({ ...formData, city: value })}
-                  disabled={!formData.state}
+                  value={formData.parroquia}
+                  onValueChange={(value) => setFormData({ ...formData, parroquia: value })}
+                  disabled={!formData.municipio}
                 >
-                  <SelectTrigger id="city">
-                    <SelectValue placeholder={formData.state ? "Selecciona una ciudad" : "Primero selecciona un estado"} />
+                  <SelectTrigger id="parroquia">
+                    <SelectValue placeholder={formData.municipio ? "Selecciona una parroquia" : "Primero selecciona un municipio"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {cities.map((city) => (
-                      <SelectItem key={city} value={city}>
-                        {city}
+                    {parroquias.map((parroquia) => (
+                      <SelectItem key={parroquia} value={parroquia}>
+                        {parroquia}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -437,7 +438,7 @@ export const ResidenceForm = ({ initialData, isEdit = false }: ResidenceFormProp
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   placeholder="Calle, avenida, edificio, número"
                   required
-                  disabled={!formData.city}
+                  disabled={!formData.parroquia}
                 />
               </div>
             </div>
